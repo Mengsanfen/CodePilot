@@ -1,0 +1,9 @@
+.env
+logs/
+data/*.sqlite
+__pycache__/
+*.pyc
+ui/node_modules/
+ui/.tanstack/tmp/
+ui/tsconfig.tsbuildinfo
+ui/.output/

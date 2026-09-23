@@ -1,0 +1,14 @@
+{
+  "backend": "local_shell",
+  "root": "E:\\my_project\\LX_AICoding\\.tmp_fetch_url_workspace",
+  "updated_at": "2026-06-23T18:37:36.451861+00:00",
+  "virtual_dirs": [
+    "/projects",
+    "/skills",
+    "/policies",
+    "/reviews",
+    "/runtimes",
+    "/tmp",
+    "/logs"
+  ]
+}
