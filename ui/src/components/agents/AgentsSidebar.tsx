@@ -4,7 +4,6 @@ import {
   ChartLineUpIcon,
   ChatCircleIcon,
   GitBranchIcon,
-  LightningIcon,
   PlusIcon,
   XIcon,
 } from "@phosphor-icons/react"
@@ -41,7 +40,7 @@ interface AgentsSidebarProps {
 }
 
 const NAV = [
-  { to: "/agents/automations", label: "自动任务", icon: LightningIcon },
+  { to: "/review", label: "PR 审查", icon: GitBranchIcon },
   { to: "/my-settings", label: "控制台", icon: ChartLineUpIcon },
 ] as const
 

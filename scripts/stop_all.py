@@ -115,7 +115,7 @@ def stop_ports(ports: Iterable[int] = DEFAULT_PORTS) -> list[int]:
 
 
 def main() -> None:
-    """清理课程项目常用的后端和前端服务端口。"""
+    """清理项目常用的后端和前端服务端口。"""
 
     ports = DEFAULT_PORTS
     stopped = stop_ports(ports)

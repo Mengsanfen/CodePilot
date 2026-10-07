@@ -28,7 +28,7 @@ def main():
     output.mkdir(parents=True)
     os.environ.update(CODEPILOT_DATABASE_URL=str(output / 'store.sqlite'),
         CHECKPOINT_DB_PATH=str(output / 'checkpoints.sqlite'), AI_WORKSPACE_ROOT=str(base),
-        LX_AICODING_LOG_DIR=str(output / 'logs'), CODEPILOT_EXECUTION_BACKEND='docker',
+        CODEPILOT_LOG_DIR=str(output / 'logs'), CODEPILOT_EXECUTION_BACKEND='docker',
         CODEPILOT_MODEL_CALL_LIMIT='12', MODEL_MAX_TOKENS='2048', CODEPILOT_LOAD_ENV='false',
         CODEPILOT_EMBEDDED_WORKER='false', CODEPILOT_REDIS_URL='', CODEPILOT_RUN_TIMEOUT='300')
     from agent.backends.worktrees import git, prepare_worktree

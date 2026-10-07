@@ -17,8 +17,8 @@ services:
       CODEPILOT_REDIS_URL: redis://redis:6379/0
       CODEPILOT_EMBEDDED_WORKER: "false"
       AI_WORKSPACE_ROOT: /workspace
-      LX_AICODING_DATA_DIR: /data
-      LX_AICODING_LOG_DIR: /logs
+      CODEPILOT_DATA_DIR: /data
+      CODEPILOT_LOG_DIR: /logs
     ports: ["127.0.0.1:8000:8000"]
     volumes:
       - ${CODEPILOT_HOST_WORKSPACE:-./workspace}:/workspace

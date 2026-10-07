@@ -5,8 +5,8 @@ import pytest
 
 _root = Path(tempfile.mkdtemp(prefix="codepilot-tests-"))
 os.environ.update({"CODEPILOT_LOAD_ENV": "false", "CODEPILOT_EMBEDDED_WORKER": "false",
-                   "LX_AICODING_DATA_DIR": str(_root / "data"),
-                   "LX_AICODING_LOG_DIR": str(_root / "logs"),
+                   "CODEPILOT_DATA_DIR": str(_root / "data"),
+                   "CODEPILOT_LOG_DIR": str(_root / "logs"),
                    "AI_WORKSPACE_ROOT": str(_root / "workspace")})
 for key in ("CODEPILOT_DATABASE_URL", "CODEPILOT_RUN_ID", "CODEPILOT_LEASE_TOKEN"):
     os.environ.pop(key, None)

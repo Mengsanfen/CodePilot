@@ -64,7 +64,7 @@ def _existing_pr_from_error(text: str) -> dict | None:
     """从 Gitee 重复 PR 错误里提取已有 PR 地址。
 
     Gitee 在相同 head/base 已有 PR 时会返回 400，而不是幂等成功。
-    对课程 Agent 来说，这种情况应该视为“PR 已存在，可复用”，否则重复演示
+    对 Agent 来说，这种情况应该视为“PR 已存在，可复用”，否则重复演示
     同一分支时会把已经成功的任务误判成失败。
     """
 

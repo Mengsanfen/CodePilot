@@ -47,7 +47,7 @@ def _timestamp_ms(value: str | None) -> int:
 
 
 def _status_for_frontend(status: str | None) -> str:
-    """把课程后端状态映射成 open-swe 前端 AgentStatus。"""
+    """把后端状态映射成 open-swe 前端 AgentStatus。"""
 
     if status in {"queued", "running", "cancelling", "pushed", "pr_created"}:
         return "running"
@@ -79,7 +79,7 @@ def _pr_payload(thread: dict[str, Any]) -> dict[str, Any] | None:
         number = 0
     return {
         "number": number,
-        "title": thread.get("title") or "LX-AICODING Pull Request",
+        "title": thread.get("title") or "CodePilot Pull Request",
         "state": "open",
         "headRef": thread.get("branch_name") or "",
         "baseRef": "master",
@@ -467,7 +467,7 @@ def _final_summary_text(thread: dict[str, Any], run_events: list[dict[str, Any]]
 def _message_payload(thread: dict[str, Any]) -> list[dict[str, Any]]:
     """生成前端可展示的最小消息列表。
 
-    课程版目前把完整 LangGraph 消息保存在 checkpoint 中，业务 Store 只保存摘要。
+    本项目目前把完整 LangGraph 消息保存在 checkpoint 中，业务 Store 只保存摘要。
     为了让复制来的 UI 可以先跑通，这里用摘要和 PR 链接生成可读消息。
     """
 
@@ -574,7 +574,7 @@ def _thread_payload(thread: dict[str, Any]) -> dict[str, Any]:
     repo_full_name = _repo_full_name(thread)
     return {
         "id": thread["thread_id"],
-        "title": thread.get("title") or "LX-AICODING Task",
+        "title": thread.get("title") or "CodePilot Task",
         "repo": repo_full_name,
         "repoFullName": repo_full_name,
         "branch": thread.get("branch_name") or "master",
@@ -596,7 +596,7 @@ def _thread_payload(thread: dict[str, Any]) -> dict[str, Any]:
 @dashboard_router.get("/me")
 def dashboard_me() -> dict[str, Any]:
     return {
-        "login": "lx-aicoding",
+        "login": "codepilot",
         "email": None,
         "avatar_url": None,
         "is_admin": True,
@@ -627,7 +627,7 @@ def dashboard_options() -> dict[str, Any]:
 @dashboard_router.get("/profile")
 def dashboard_profile() -> dict[str, Any]:
     return {
-        "login": "lx-aicoding",
+        "login": "codepilot",
         "email": None,
         "default_model": get_env("MAIN_MODEL", "deepseek-v4-pro"),
         "reasoning_effort": "default",

@@ -14,9 +14,9 @@ class ReviewFinding:
 
 def format_findings_comment(findings: list[ReviewFinding]) -> str:
     if not findings:
-        return "LX-AICODING Reviewer 未发现需要阻塞合并的问题。"
+        return "CodePilot Reviewer 未发现需要阻塞合并的问题。"
 
-    lines = ["LX-AICODING Reviewer 发现以下问题："]
+    lines = ["CodePilot Reviewer 发现以下问题："]
     for index, finding in enumerate(findings, start=1):
         location = finding.file if finding.line is None else f"{finding.file}:{finding.line}"
         lines.extend(

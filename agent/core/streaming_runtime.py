@@ -41,7 +41,7 @@ def _safe_field(value: Any, name: str, default: Any = None) -> Any:
 def _stringify(value: Any, *, limit: int = 1200) -> str:
     """把事件对象中的输入、输出压缩成适合前端展示的短文本。
 
-    前端步骤区只需要告诉讲课学员“正在做什么”，不应该塞入大段 token、
+    前端步骤区只需要告诉用户“正在做什么”，不应该塞入大段 token、
     大段文件内容或未脱敏的异常。真正的详细排查仍看后端日志。
     """
 
@@ -235,7 +235,7 @@ def _subagent_from_event(event: Any) -> Any | None:
 
 
 def _tool_title(tool_name: str) -> str:
-    """把工具名映射成讲课友好的中文步骤名。"""
+    """把工具名映射成易于理解的中文步骤名。"""
 
     mapping = {
         "ls": "查看目录",
@@ -410,7 +410,7 @@ def _message_dict(message: Any) -> dict[str, Any]:
 def _messages_from_output(output: Any) -> list[dict[str, Any]]:
     """从 stream.output 中提取最终 messages。
 
-    官方 Deep Agents 返回值通常是 `{"messages": [...]}`；为了课程版稳定运行，
+    官方 Deep Agents 返回值通常是 `{"messages": [...]}`；为了本项目稳定运行，
     这里也兼容对象属性和其它返回结构。
     """
 
@@ -497,11 +497,11 @@ def _summarize_raw_event(event: Any) -> dict[str, Any]:
 def _debug_raw_stream_events(*, agent: Any, thread_id: str, content: str) -> None:
     """按开关记录真实 raw event 结构。
 
-    该诊断会额外启动一条极短 DeepAgent 流，只在 `LX_AICODING_DEBUG_STREAM_EVENTS=1`
+    该诊断会额外启动一条极短 DeepAgent 流，只在 `CODEPILOT_DEBUG_STREAM_EVENTS=1`
     时启用。它不参与正式任务结果，只用于确认 DeepAgents 当前版本真实事件字段。
     """
 
-    if get_env("LX_AICODING_DEBUG_STREAM_EVENTS") != "1":
+    if get_env("CODEPILOT_DEBUG_STREAM_EVENTS") != "1":
         return
     debug_thread_id = f"{thread_id}:debug-stream"
     try:
@@ -681,7 +681,7 @@ def run_agent_with_event_stream(
 
     这个函数是 FastAPI 版本替代 `langgraph dev` 的核心桥接层：
     - DeepAgent 继续按官方 `stream_events(version="v3")` 运行。
-    - 后端把 message、tool_calls、subagents 转成课程项目的 `run_events`。
+    - 后端把 message、tool_calls、subagents 转成项目的 `run_events`。
     - 前端仍只消费我们自己的 `/dashboard/api/.../stream`，不用绑定 LangGraph 本地服务。
     """
 

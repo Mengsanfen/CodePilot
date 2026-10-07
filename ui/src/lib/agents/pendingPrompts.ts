@@ -1,6 +1,6 @@
 import type { ImageChunk } from "./types";
 
-const STORAGE_KEY = (threadId: string) => `open-swe:pending-prompts:${threadId}`;
+const STORAGE_KEY = (threadId: string) => `codepilot:pending-prompts:${threadId}`;
 
 export interface PendingPrompt {
   prompt: string;

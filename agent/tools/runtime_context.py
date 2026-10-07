@@ -11,7 +11,7 @@ def get_runtime_configurable() -> dict[str, Any]:
     """读取当前工具调用所属的 LangGraph configurable。
 
     open-swe 的工具通常通过 `get_config()` 读取 thread、仓库和触发来源。
-    LX_AICODING 运行在 FastAPI 内，但已经在 `agent.server.get_agent` 中通过
+    CodePilot 运行在 FastAPI 内，但已经在 `agent.server.get_agent` 中通过
     `.with_config(config)` 绑定了同样的上下文，因此工具层不再需要闭包传参。
     """
 

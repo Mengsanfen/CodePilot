@@ -5,7 +5,7 @@ description: Review changed source for concrete defects using diff locations and
 
 # Code Review Skill
 
-用于课程版 Reviewer Agent 的最小技能说明。
+用于本项目 Reviewer Agent 的最小技能说明。
 
 审查时只关注本次 diff 中可能导致真实故障的问题：
 

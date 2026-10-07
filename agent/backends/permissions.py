@@ -19,12 +19,12 @@ def assert_path_inside(path: Path, root: Path) -> Path:
 def normalize_safe_command(command: str) -> str:
     """校验 Agent 准备执行的本地命令。
 
-    课程版第一版只允许少量教学需要的命令族：
+    本地模式只允许预先批准的命令族：
     python/py、pytest、pip、git、dir、type、ruff。
 
     模型经常会在命令末尾追加 `2>&1` 或 `| tail -5`。
     前者是为了合并 stderr，后者是 Unix 查看末尾输出的习惯。
-    课程版在 Python 中已经捕获 stdout/stderr，也会把完整输出返回给模型，
+    本项目在 Python 中已经捕获 stdout/stderr，也会把完整输出返回给模型，
     所以这里剥离这两个尾部片段，既兼容模型习惯，又不放开任意管道/重定向能力。
     """
 
@@ -92,7 +92,7 @@ def ensure_safe_git_message(message: str) -> str:
     """把模型生成的提交信息归一化为安全的单行 commit message。
 
     模型经常会生成多行提交说明，甚至包含 JSON 示例中的双引号。
-    Git 本身支持复杂 message，但课程版当前通过 Windows shell 执行 git commit，
+    Git 本身支持复杂 message，但本项目当前通过 Windows shell 执行 git commit，
     所以这里把 message 压缩成单行，并移除 shell 风险字符。
     """
 
@@ -102,5 +102,5 @@ def ensure_safe_git_message(message: str) -> str:
         normalized = normalized.replace(token, " ")
     normalized = " ".join(normalized.split())
     if not normalized:
-        return "LX-AICODING generated changes"
+        return "CodePilot generated changes"
     return normalized[:200]

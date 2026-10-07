@@ -1,9 +1,4 @@
-/**
- * Typed client for the open-swe dashboard backend.
- *
- * All requests are sent with credentials so the httpOnly `osw_session`
- * cookie set by the OAuth callback rides along on cross-origin calls.
- */
+/** Typed client for the CodePilot dashboard API. UI origins are configured by deployment. */
 
 const API_BASE = (import.meta.env.VITE_DASHBOARD_API_BASE_URL ?? "").replace(/\/$/, "");
 
@@ -229,67 +224,5 @@ export const api = {
   me: () => request<SessionUser>("/me"),
   options: () => request<OptionsPayload>("/options"),
   profile: () => request<Profile>("/profile"),
-  saveProfile: (body: ProfileUpdate) =>
-    request<Profile>("/profile", { method: "PUT", body: JSON.stringify(body) }),
   repos: () => request<ReposPayload>("/repos"),
-  listReviewStyles: () => request<Array<ReviewStyle>>("/review-styles"),
-  createReviewStyle: (full_name: string) =>
-    request<ReviewStyle>("/review-styles", {
-      method: "POST",
-      body: JSON.stringify({ full_name }),
-    }),
-  getReviewStyle: (full_name: string) =>
-    request<ReviewStyle>(`/review-styles/${encodeURIComponent(full_name)}`),
-  saveReviewStylePrompt: (full_name: string, custom_prompt: string) =>
-    request<ReviewStyle>(`/review-styles/${encodeURIComponent(full_name)}`, {
-      method: "PUT",
-      body: JSON.stringify({ custom_prompt }),
-    }),
-  analyzeReviewStyle: (full_name: string) =>
-    request<ReviewStyle>(`/review-styles/${encodeURIComponent(full_name)}/analyze`, {
-      method: "POST",
-    }),
-  cancelReviewStyle: (full_name: string) =>
-    request<ReviewStyle>(`/review-styles/${encodeURIComponent(full_name)}/cancel`, {
-      method: "POST",
-    }),
-  deleteReviewStyle: (full_name: string) =>
-    request<void>(`/review-styles/${encodeURIComponent(full_name)}`, {
-      method: "DELETE",
-    }),
-  getTeamSettings: () => request<TeamSettings>("/team-settings"),
-  saveTeamSettings: (body: TeamSettings) =>
-    request<TeamSettings>("/team-settings", { method: "PUT", body: JSON.stringify(body) }),
-  listEnabledReviewRepos: () =>
-    request<{ repos: Array<string> }>("/enabled-review-repos"),
-  setEnabledReviewRepo: (full_name: string, enabled: boolean) =>
-    request<{ repos: Array<string> }>("/enabled-review-repos", {
-      method: "PUT",
-      body: JSON.stringify({ full_name, enabled }),
-    }),
-  usageLeaderboard: (period: UsageLeaderboardPeriod = "30d", limit = 10) =>
-    request<UsageLeaderboardPayload>(
-      `/agent-usage-leaderboard?period=${encodeURIComponent(period)}&limit=${limit}`,
-    ),
-  myMapping: () => request<Partial<UserMapping>>("/my-mapping"),
-  adminListUserMappings: (page = 1, pageSize = 20) =>
-    request<UserMappingsPage>(
-      `/admin/user-mappings?page=${page}&page_size=${pageSize}`,
-    ),
-  adminDeleteUserMapping: (github_login: string) =>
-    request<{ deleted: boolean }>(
-      `/admin/user-mappings/${encodeURIComponent(github_login)}`,
-      { method: "DELETE" },
-    ),
-  logout: () => request<void>("/auth/logout", { method: "POST" }),
 };
-
-export function loginUrl(redirectTo?: string): string {
-  const target = redirectTo ?? (typeof window !== "undefined" ? window.location.origin : "");
-  const qs = target ? `?redirect_to=${encodeURIComponent(target)}` : "";
-  return `${API_BASE}/dashboard/api/auth/dev-login${qs}`;
-}
-
-export function slackConnectUrl(): string {
-  return `${API_BASE}/dashboard/api/slack/login`;
-}

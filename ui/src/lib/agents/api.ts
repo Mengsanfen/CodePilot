@@ -1,6 +1,6 @@
-import type { AgentSchedule, AgentThread, ImageChunk, Message } from "./types"
+import type { AgentThread, ImageChunk, Message } from "./types"
 
-export type { AgentSchedule, AgentThread, Message }
+export type { AgentThread, Message }
 
 export interface ThreadCreateRequest {
   prompt: string
@@ -16,25 +16,6 @@ export interface ThreadMessageRequest {
   images?: Array<ImageChunk>
   model_id?: string | null
   effort?: string | null
-}
-
-export interface ScheduleCreateRequest {
-  prompt: string
-  schedule: string
-  name?: string | null
-  repo?: string | null
-  model_id?: string | null
-  effort?: string | null
-}
-
-export interface ScheduleUpdateRequest {
-  prompt?: string | null
-  schedule?: string | null
-  name?: string | null
-  repo?: string | null
-  model_id?: string | null
-  effort?: string | null
-  enabled?: boolean | null
 }
 
 const API_BASE = (import.meta.env.VITE_DASHBOARD_API_BASE_URL ?? "").replace(
@@ -75,24 +56,6 @@ async function agentsRequest<T>(
 
 export const agentsApi = {
   listThreads: () => agentsRequest<Array<AgentThread>>("/threads"),
-  listSchedules: () => agentsRequest<Array<AgentSchedule>>("/schedules"),
-  createSchedule: (body: ScheduleCreateRequest) =>
-    agentsRequest<AgentSchedule>("/schedules", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
-  updateSchedule: (scheduleId: string, body: ScheduleUpdateRequest) =>
-    agentsRequest<AgentSchedule>(
-      `/schedules/${encodeURIComponent(scheduleId)}`,
-      {
-        method: "PATCH",
-        body: JSON.stringify(body),
-      }
-    ),
-  deleteSchedule: (scheduleId: string) =>
-    agentsRequest<void>(`/schedules/${encodeURIComponent(scheduleId)}`, {
-      method: "DELETE",
-    }),
   getThread: (threadId: string) =>
     agentsRequest<AgentThread>(`/threads/${encodeURIComponent(threadId)}`),
   createThread: (body: ThreadCreateRequest) =>

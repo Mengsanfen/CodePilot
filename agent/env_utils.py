@@ -10,16 +10,7 @@ LOCAL_ENV = PROJECT_ROOT / ".env"
 
 
 def _load_non_empty_env(path: Path, *, override: bool) -> None:
-    r"""加载 .env 中的非空变量。
-
-    python-dotenv 默认会把 `DEEPSEEK_API_KEY=` 这种空值也写入环境变量。
-    课程项目的 `.env` 通常会保留空字段作为模板，如果直接加载空值，
-
-    所以这里采用自定义加载规则：
-    - 空值不写入环境变量。
-    - open-swe 的 .env 先作为默认值加载。
-    - 本项目 .env 只有填写了非空值时才覆盖默认值。
-    """
+    """加载本地非空配置，保留进程显式配置的优先级。"""
 
     if not path.exists():
         return
@@ -31,19 +22,14 @@ def _load_non_empty_env(path: Path, *, override: bool) -> None:
 
 
 def load_environment() -> None:
-    r"""加载课程项目运行需要的环境变量。
-
-    加载顺序有意设计为：
-    本项目 `.env` 中的空值不会覆盖 open-swe 的真实值；
-    """
+    """加载项目配置；测试可用 CODEPILOT_LOAD_ENV=false 禁用。"""
     if os.environ.get("CODEPILOT_LOAD_ENV", "true").lower() == "false":
         return
     # Explicit process/Compose configuration wins; child workspaces must not be
     # silently reset to the shared .env workspace on every get_env() call.
     _load_non_empty_env(LOCAL_ENV, override=False)
 
-    # 课程版默认关闭 LangSmith/LangChain tracing。
-    # 这样学生启动项目时不需要额外配置 LangSmith，也不会把运行数据发到外部观测平台。
+    # 外部 tracing 必须显式启用，默认不发送运行数据。
     os.environ.setdefault("LANGCHAIN_TRACING_V2", "false")
     os.environ.setdefault("LANGSMITH_TRACING", "false")
     os.environ.setdefault("LANGCHAIN_API_KEY", "")
@@ -57,7 +43,17 @@ def get_env(name: str, default: str = "") -> str:
     """
 
     load_environment()
-    return os.environ.get(name, default)
+    # Temporary compatibility for existing local installations. New names win.
+    legacy = {
+        'CODEPILOT_DATA_DIR': 'LX_AICODING_DATA_DIR',
+        'CODEPILOT_LOG_DIR': 'LX_AICODING_LOG_DIR',
+        'CODEPILOT_LOG_LEVEL': 'LX_AICODING_LOG_LEVEL',
+        'CODEPILOT_LOG_WHEN': 'LX_AICODING_LOG_WHEN',
+        'CODEPILOT_LOG_INTERVAL': 'LX_AICODING_LOG_INTERVAL',
+        'CODEPILOT_LOG_RETENTION_DAYS': 'LX_AICODING_LOG_RETENTION_DAYS',
+        'CODEPILOT_DEBUG_STREAM_EVENTS': 'LX_AICODING_DEBUG_STREAM_EVENTS',
+    }
+    return os.environ.get(name, os.environ.get(legacy.get(name, ''), default))
 
 
 def require_env(name: str) -> str:

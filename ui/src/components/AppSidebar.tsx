@@ -1,11 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import {
   IoArrowBackOutline,
-  IoCloudOutline,
   IoGitPullRequestOutline,
   IoOptionsOutline,
-  IoSettingsOutline,
-  IoStatsChartOutline,
 } from "react-icons/io5";
 import type { ComponentType, SVGProps } from "react";
 
@@ -28,11 +25,8 @@ interface NavItem {
 }
 
 const NAV: Array<NavItem> = [
-  { to: "/my-settings", label: "Profile Settings", icon: IoOptionsOutline },
-  { to: "/cloud-agents", label: "CodePilot 智能体", icon: IoCloudOutline },
+  { to: "/my-settings", label: "运行配置", icon: IoOptionsOutline },
   { to: "/review", label: "PR Review", icon: IoGitPullRequestOutline },
-  { to: "/usage", label: "Usage", icon: IoStatsChartOutline },
-  { to: "/admin", label: "Admin", icon: IoSettingsOutline, adminOnly: true },
 ];
 
 export function AppSidebar({ user }: { user: SessionUser }) {

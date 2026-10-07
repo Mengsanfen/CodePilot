@@ -13,7 +13,7 @@ import { useState } from "react"
 import appCss from "../styles.css?url"
 import { makeQueryClient } from "@/lib/query"
 
-const themeInitScript = `(function(){try{var t=localStorage.getItem("open-swe-theme");var d=t==="dark"||((!t||t==="system")&&window.matchMedia("(prefers-color-scheme: dark)").matches);var r=document.documentElement;r.classList.toggle("dark",d);r.style.colorScheme=d?"dark":"light";}catch(e){}})();`
+const themeInitScript = `(function(){try{var t=localStorage.getItem("codepilot-theme");var d=t==="dark"||((!t||t==="system")&&window.matchMedia("(prefers-color-scheme: dark)").matches);var r=document.documentElement;r.classList.toggle("dark",d);r.style.colorScheme=d?"dark":"light";}catch(e){}})();`
 
 export const Route = createRootRoute({
   head: () => ({

@@ -1,16 +1,14 @@
-import { Link, useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import {
   IoDesktopOutline,
-  IoLogOutOutline,
   IoMoonOutline,
   IoSettingsOutline,
   IoSunnyOutline,
 } from "react-icons/io5";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { api, type SessionUser } from "@/lib/api";
+import type { SessionUser } from "@/lib/api";
 import { useTheme, type Theme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -26,8 +24,6 @@ interface SidebarUserMenuProps {
 }
 
 export function SidebarUserMenu({ user, showSettingsLink = false }: SidebarUserMenuProps) {
-  const qc = useQueryClient();
-  const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
@@ -47,13 +43,6 @@ export function SidebarUserMenu({ user, showSettingsLink = false }: SidebarUserM
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
-
-  const onLogout = async () => {
-    setOpen(false);
-    await api.logout();
-    qc.setQueryData(["session"], null);
-    navigate({ to: "/login" });
-  };
 
   const initials = (user.login || "?").slice(0, 2).toUpperCase();
 
@@ -119,18 +108,9 @@ export function SidebarUserMenu({ user, showSettingsLink = false }: SidebarUserM
               className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs/relaxed hover:bg-muted"
             >
               <IoSettingsOutline className="size-3.5" />
-              Dashboard settings
+              运行配置
             </Link>
           )}
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => void onLogout()}
-            className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs/relaxed hover:bg-muted"
-          >
-            <IoLogOutOutline className="size-3.5" />
-            Sign out
-          </button>
         </div>
       )}
     </div>

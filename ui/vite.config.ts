@@ -30,7 +30,7 @@ const config = defineConfig({
         id: "/",
         name: "CodePilot",
         short_name: "CodePilot",
-        description: "Enterprise AI coding service.",
+        description: "Recoverable AI coding with human approval and review.",
         start_url: "/",
         scope: "/",
         display: "standalone",

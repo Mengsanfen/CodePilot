@@ -28,7 +28,7 @@ class AgentRunLimitExceeded(RuntimeError):
 class AgentRunLimits:
     """Agent Loop 的轻量保护阈值。
 
-    open-swe 的模型循环主要由 `ModelCallLimitMiddleware` 保护。LX_AICODING
+    open-swe 的模型循环主要由 `ModelCallLimitMiddleware` 保护。CodePilot
     运行在 FastAPI 内，这里只保留更可靠的时间和工具调用上限。不要用 raw event
     里的 `message-start` 统计模型调用次数，因为 DeepAgents 的流式片段、子 Agent
     和中间 assistant message 都可能产生该事件，容易误判。

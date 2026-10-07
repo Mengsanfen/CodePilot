@@ -19,7 +19,7 @@ DEFAULT_PROMPT = """请在这个 Gitee 仓库中创建一个最小 FastAPI 项�
 2. 添加 pytest 测试。
 3. 添加 README，说明安装、启动和测试方式。
 4. 运行测试。
-5. 提交到 lx-aicoding/e2e-verify 分支。
+5. 提交到 codepilot/e2e-verify 分支。
 6. 创建 Gitee Pull Request。
 """
 
@@ -31,7 +31,7 @@ def main() -> None:
     因此必须传入专门的测试仓库，不要对生产仓库直接运行。
     """
 
-    parser = argparse.ArgumentParser(description="运行 LX-AICODING Gitee 端到端验收")
+    parser = argparse.ArgumentParser(description="运行 CodePilot Gitee 端到端验收")
     parser.add_argument("repo_url", help="Gitee 测试仓库地址，例如 https://gitee.com/owner/repo.git")
     parser.add_argument("--prompt", default=DEFAULT_PROMPT, help="发送给 Agent 的任务说明")
     parser.add_argument("--thread-id", default=None, help="可选，指定 LangGraph thread_id")

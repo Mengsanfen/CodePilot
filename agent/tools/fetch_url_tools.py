@@ -21,7 +21,7 @@ logger = logging.getLogger("agent.run.fetch_url")
 class _TextExtractor(HTMLParser):
     """极简 HTML 文本提取器。
 
-    项目当前没有显式依赖 markdownify/bs4。为了不额外增加太多课程依赖，
+    项目当前没有显式依赖 markdownify/bs4。为了不额外增加额外依赖，
     fetch_url 优先尝试 markdownify；如果环境里没有，就用这个标准库解析器
     提取正文文本，仍然能满足 Agent 阅读网页资料的基本需求。
     """
@@ -109,7 +109,7 @@ def fetch_url(url: str, timeout: int = 30) -> dict[str, Any]:
             "GET",
             normalized_url,
             timeout=max(1, min(int(timeout), 60)),
-            headers={"User-Agent": "LX-AICODING/1.0"},
+            headers={"User-Agent": "CodePilot/1.0"},
         )
         if blocked:
             result = blocked

@@ -17,14 +17,14 @@ def utc_now() -> str:
 
 
 class LocalSqliteStore:
-    """课程版业务数据 Store。
+    """本项目业务数据 Store。
 
     这个类只负责保存“平台业务摘要”，不保存完整聊天历史：
     - threads：任务列表和当前状态。
     - runs：每次运行的开始、结束、失败原因。
     - thread_plans：编码前的技术方案、确认状态和 Markdown 归档路径。
     - review_findings：Reviewer Agent 发现的问题。
-    - settings：课程项目的少量键值配置。
+    - settings：项目的少量键值配置。
 
     完整 messages 和 LangGraph thread state 由 checkpoint 数据库保存。
     """
@@ -181,7 +181,7 @@ class LocalSqliteStore:
     def _ensure_column(self, table: str, column: str, definition: str) -> None:
         """为旧 SQLite 数据库补充新增列。
 
-        课程项目会不断迭代字段，不能要求每次都删除 data/store.sqlite。
+        项目会不断迭代字段，不能要求每次都删除 data/store.sqlite。
         PRAGMA table_info 可以判断列是否存在，缺失时用 ALTER TABLE 做轻量迁移。
         """
 
@@ -446,7 +446,7 @@ class LocalSqliteStore:
         """保存一份编码前技术方案。
 
         plan_text 用于前端快速展示；plan_path 指向 data/plans 下的 Markdown 文件，
-        方便讲课时直接打开，也方便后续让 Agent 读取已确认方案。
+        方便直接检查，也方便后续让 Agent 读取已确认方案。
         """
 
         with self._lock:
@@ -577,7 +577,7 @@ class LocalSqliteStore:
         """删除一个 dashboard 会话及其业务附属记录。
 
         这里清理的是业务 Store，不直接清理 LangGraph checkpoint。
-        课程版第一阶段列表页只读取 threads/runs/review_findings，
+        当前版本列表页只读取 threads/runs/review_findings，
         所以删除这些记录后，前端侧边栏会立即干净。
         """
 

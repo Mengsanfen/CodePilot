@@ -1,6 +1,6 @@
 # CodePilot
 
-面向研发协作的可恢复 AI Coding Agent 平台。在原有 LX_AICoding 教学项目上，增加持久化调度、独立 Worker、会话 worktree、受限命令容器、外部操作审核、独立审查与可复现评测。
+面向研发协作的可恢复 AI Coding Agent：通过持久化调度、独立 Worker、受限执行和人工审批，让长任务的失败可定位、恢复有边界、结果可验证。
 
 技术栈：Python 3.14、FastAPI、DeepAgents 0.6.11 / LangGraph、SQLite / PostgreSQL、Redis Streams、Docker、React、SSE、OpenTelemetry。
 
@@ -105,3 +105,7 @@ $env:TEST_DOCKER_IMAGE='codepilot-sandbox:local'
 API 与 Agent 执行进程通过持久化 W3C traceparent 关联，阶段 span 默认写入 `logs/traces-<pid>.jsonl`，运行事件记录阶段耗时、失败类型和模型 Token。设置 `CODEPILOT_OTEL_CONSOLE=true` 可同时输出控制台 span。当前没有接入外部 Collector 或实现完整成本结算。
 
 更多设计、限制和面试讲解见 [架构说明](docs/CODEPILOT_ARCHITECTURE.md)，最新目标对标与实际执行结果见 [目标验收](docs/TARGET_ALIGNMENT.md)，首轮部署记录见 [本地验收记录](docs/VALIDATION.md)。
+
+## Credits / Upstream
+
+项目来源与保留模块见 [UPSTREAM](docs/UPSTREAM.md)，框架能力与项目改造边界见 [OWNERSHIP](docs/OWNERSHIP.md)。

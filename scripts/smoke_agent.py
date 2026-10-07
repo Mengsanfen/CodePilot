@@ -10,7 +10,7 @@ load_environment()
 root = (Path('test-results') / ('smoke-' + str(int(time.time())))).resolve()
 root.mkdir(parents=True)
 os.environ.update(CODEPILOT_DATABASE_URL=str(root / 'runs.sqlite'),
-    LX_AICODING_DATA_DIR=str(root), LX_AICODING_LOG_DIR=str(root / 'logs'),
+    CODEPILOT_DATA_DIR=str(root), CODEPILOT_LOG_DIR=str(root / 'logs'),
     AI_WORKSPACE_ROOT=str(root / 'workspace'), CODEPILOT_EMBEDDED_WORKER='false',
     CODEPILOT_MODEL_CALL_LIMIT='6', MODEL_MAX_TOKENS='2048', CODEPILOT_RUN_TIMEOUT='300')
 from agent.orchestration.service import get_run_store

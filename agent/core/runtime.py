@@ -30,7 +30,7 @@ def _build_agent_for_runtime(
 ):
     """为 FastAPI runtime 构造 open-swe 风格的 Agent config。
 
-    open-swe 由 LangGraph Server 注入 `RunnableConfig`。课程版不用
+    open-swe 由 LangGraph Server 注入 `RunnableConfig`。本项目不用
     langgraph dev，所以在这里显式组装 config，再交给 `agent.server.get_agent`。
     """
 
@@ -48,7 +48,7 @@ def _message_to_dict(message: Any) -> dict[str, Any]:
     """把 LangChain 消息对象转换为前端和 API 更容易展示的字典。
 
     DeepAgent 返回的 messages 中既可能有 HumanMessage、AIMessage，
-    也可能有工具调用消息。课程版 API 不直接暴露 Python 对象，
+    也可能有工具调用消息。本项目 API 不直接暴露 Python 对象，
     而是统一转换成 type/content 结构。
     """
 
@@ -294,7 +294,7 @@ def _supersede_plan_message(message: dict[str, Any]) -> None:
 def is_pull_only_task(prompt: str) -> bool:
     """判断用户任务是否只是拉取远程仓库代码。
 
-    课程版第一阶段默认目标是“修改代码并创建 PR”，但用户明确说
+    当前版本默认目标是“修改代码并创建 PR”，但用户明确说
     pull、拉取、同步远程代码时，不应该继续 commit、push 或创建 PR。
     这里用保守关键词判断，只覆盖非常明确的仓库同步请求。
     """
@@ -658,7 +658,7 @@ def run_agent_task(*, repo_url: str, prompt: str, thread_id: str | None = None) 
     coding_prompt = prompt
 
     if existing_thread and _is_approval_prompt(prompt):
-        # 讲课重点：
+        # 执行步骤：
         # “确认实施”不能直接等价于“执行当前这几个字”。
         # 必须先回到当前 thread 的历史消息里，找到最近一条仍在等待确认的技术方案；
         # 再用该方案的 source_prompt 还原用户最初的开发需求，避免把“确认”当作新需求执行。

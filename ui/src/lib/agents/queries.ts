@@ -3,7 +3,6 @@ import { useNavigate } from "@tanstack/react-router"
 
 import { agentsApi } from "./api"
 import { addPendingPrompt, dropPendingPrompts } from "./pendingPrompts"
-import type { ScheduleUpdateRequest } from "./api"
 import type { ImageChunk } from "./types"
 
 function messageText(message: { chunks: Array<{ kind: string; text?: string }> }): string {
@@ -18,9 +17,6 @@ export const agentThreadKeys = {
   detail: (threadId: string) => ["agent-threads", threadId] as const,
 }
 
-export const agentScheduleKeys = {
-  all: ["agent-schedules"] as const,
-}
 
 export function useAgentThreads() {
   return useQuery({
@@ -36,47 +32,6 @@ export function useAgentThread(threadId: string) {
     refetchInterval: (query) => {
       const status = query.state.data?.status
       return status === "running" ? 2000 : false
-    },
-  })
-}
-
-export function useAgentSchedules() {
-  return useQuery({
-    queryKey: agentScheduleKeys.all,
-    queryFn: () => agentsApi.listSchedules(),
-  })
-}
-
-export function useCreateAgentSchedule() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: agentsApi.createSchedule,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: agentScheduleKeys.all })
-    },
-  })
-}
-
-export function useUpdateAgentSchedule() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: (vars: { scheduleId: string; body: ScheduleUpdateRequest }) =>
-      agentsApi.updateSchedule(vars.scheduleId, vars.body),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: agentScheduleKeys.all })
-    },
-  })
-}
-
-export function useDeleteAgentSchedule() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: agentsApi.deleteSchedule,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: agentScheduleKeys.all })
     },
   })
 }

@@ -28,7 +28,7 @@ def get_checkpointer():
     """获取 LangGraph SQLite checkpointer。
 
     checkpointer 负责保存 Agent 运行过程中的 messages、工具调用状态和 thread state。
-    课程版显式把 checkpoint 写到 data/checkpoints.sqlite，方便课堂演示重启恢复。
+    本项目显式把 checkpoint 写到 data/checkpoints.sqlite，方便课堂演示重启恢复。
     """
 
     global _checkpointer
@@ -41,7 +41,7 @@ def build_agent(thread_id: str, task_kind: TaskKind = "coding"):
     """构建一个绑定 thread_id 的 DeepAgent 兼容入口。
 
     真实创建逻辑已经迁移到 `agent.server.get_agent(config)`，这样项目结构更接近
-    open-swe 的 LangGraph Server 入口。保留这个函数是为了兼容课程脚本和已有
+    open-swe 的 LangGraph Server 入口。保留这个函数是为了兼容旧脚本和已有
     FastAPI runtime 调用点。
     """
 

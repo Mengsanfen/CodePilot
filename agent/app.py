@@ -1,6 +1,6 @@
 """FastAPI 应用入口模块。
 
-本模块是 LX-AICODING 课程后端的服务入口，负责：
+本模块是 CodePilot 后端的服务入口，负责：
 - 加载环境变量和日志配置
 - 创建 FastAPI 应用实例
 - 配置跨域资源共享（CORS）
@@ -21,7 +21,7 @@ from agent.env_utils import load_environment
 # ---------------------------------------------------------------
 # 启动前置初始化
 # ---------------------------------------------------------------
-# 注意：FastAPI/Uvicorn 是本课程版本中唯一的服务化入口。
+# 注意：FastAPI/Uvicorn 是本服务模式中唯一的服务化入口。
 # 这里显式调用 load_environment() 加载 .env 文件中的配置，
 # 并调用 configure_logging() 初始化日志系统。
 # 这样做的好处是不依赖 langgraph dev 等开发服务器自带的环境加载机制。

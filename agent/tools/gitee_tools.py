@@ -19,8 +19,8 @@ def open_gitee_pull_request(
     repo: str,
     head: str,
     base: str = "main",
-    title: str = "LX-AICODING generated changes",
-    body: str = "由 LX-AICODING 自动生成。",
+    title: str = "CodePilot generated changes",
+    body: str = "由 CodePilot 自动生成。",
 ) -> dict[str, Any]:
     """为 GitHub/Gitee 的已有分支提出 PR 发布申请，等待用户审批后执行。"""
 

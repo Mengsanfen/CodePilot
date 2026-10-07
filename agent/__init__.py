@@ -1,1 +1,1 @@
-"""LX-AICODING course backend."""
+"""CodePilot course backend."""
