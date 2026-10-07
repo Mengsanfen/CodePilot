@@ -53,8 +53,31 @@ def main():
         import shutil
         shutil.copytree(settings.PROJECT_ROOT / "agent" / "skills", workspace / "skills", dirs_exist_ok=True)
         repo = parse_gitee_repo_url(run["repo_url"])
-        prepare_worktree(base, workspace, repo.clone_url, repo.repo, run["thread_id"], env=backend._execution_env())
-        if run["resume_checkpoint"]:
+        from agent.backends.git_environment import git_environment
+        spec = store.spec(run_id)
+        from agent.observability import stage
+        with stage('workspace.prepare'):
+            repo_path = prepare_worktree(base, workspace, repo.clone_url, repo.repo, run["thread_id"],
+                env=git_environment(repo.provider), review=spec if spec.get('kind') == 'pr_review' else None)
+        from agent.tools.review_context import git_read
+        baseline = workspace / 'policies' / 'baseline.txt'
+        if not baseline.exists():
+            initial = (git_read(repo_path, 'merge-base', spec['base_sha'], spec['head_sha']).strip()
+                       if spec.get('kind') == 'pr_review' else git_read(repo_path, 'rev-parse', 'HEAD').strip())
+            baseline.write_text(initial)
+        from agent.core.repo_memory import build_manifest, task_history, save_task_memory
+        with stage('context.load'):
+            manifest = build_manifest(repo_path, base / 'context-cache')
+            manifest['history'] = task_history(store, run['repo_url'], manifest['head'], exclude_run=run_id)
+        (workspace / 'policies' / 'repository-context.json').write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
+        store.append_event(run_id, token, 'context.loaded',
+                           {'head': manifest['head'], 'cache_hit': manifest.get('cache_hit', False),
+                            'dirty': manifest['dirty']})
+        if spec.get('kind') in {'pr_review', 'repair'}:
+            from agent.orchestration.review_flow import run_flow
+            run_flow(store, run, spec, repo_path)
+        elif run["resume_checkpoint"]:
             context = json.loads(run["execution_context"])
             agent = runtime._build_agent_for_runtime(thread_id=run["thread_id"],
                                                      task_kind=context["task_kind"], repo_url=run["repo_url"])
@@ -76,7 +99,9 @@ def main():
                                      author="agent", content=text, metadata={"task_kind": context["task_kind"],
                                      "awaiting_confirmation": planning, "source_prompt": run["prompt"]})
         else:
-            runtime.run_agent_task(repo_url=run["repo_url"], prompt=run["prompt"], thread_id=run["thread_id"])
+            with stage('agent.execute'):
+                runtime.run_agent_task(repo_url=run["repo_url"], prompt=run["prompt"], thread_id=run["thread_id"])
+        save_task_memory(store, run, repo_path)
     finally:
         stop.set()
         watcher.join(timeout=2)
@@ -84,4 +109,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    from agent.env_utils import load_environment
+    load_environment()
+    from agent.orchestration.service import get_run_store
+    from agent.observability import run_span
+    current_run = get_run_store().get_run(os.environ['CODEPILOT_RUN_ID'])
+    with run_span(current_run['run_id'], current_run['attempt'], get_run_store().trace_context(current_run['run_id'])):
+        main()

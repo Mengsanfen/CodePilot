@@ -6,7 +6,7 @@ import re
 from collections.abc import Iterable
 
 
-DEFAULT_PORTS = (2024, 3000)
+DEFAULT_PORTS = (8000, 3000)
 
 
 def _run_powershell(command: str) -> subprocess.CompletedProcess[str]:
@@ -36,7 +36,7 @@ def find_pids_by_ports(ports: Iterable[int] = DEFAULT_PORTS) -> list[int]:
     """根据端口查找监听进程 PID。
 
     start_all.py 默认占用：
-    - 2024：FastAPI/Uvicorn 后端
+    - 8000：FastAPI/Uvicorn 后端
     - 3000：Vite 前端
     """
 

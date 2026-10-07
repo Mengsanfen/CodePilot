@@ -36,6 +36,8 @@ def load_environment() -> None:
     加载顺序有意设计为：
     本项目 `.env` 中的空值不会覆盖 open-swe 的真实值；
     """
+    if os.environ.get("CODEPILOT_LOAD_ENV", "true").lower() == "false":
+        return
     # Explicit process/Compose configuration wins; child workspaces must not be
     # silently reset to the shared .env workspace on every get_env() call.
     _load_non_empty_env(LOCAL_ENV, override=False)

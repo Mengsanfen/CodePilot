@@ -1,0 +1,65 @@
+name: platform-regression
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: codepilot
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: codepilot
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U codepilot" --health-interval 5s --health-retries 10
+      redis:
+        image: redis:7.4-alpine
+        ports: ['6379:6379']
+    env:
+      CODEPILOT_LOAD_ENV: 'false'
+      TEST_POSTGRES_URL: postgresql://codepilot:test-only@127.0.0.1:5432/codepilot
+      TEST_REDIS_URL: redis://127.0.0.1:6379/0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.14'}
+      - run: pip install -c constraints.txt '.[test]'
+      - run: python -m compileall -q agent scripts tests
+      - run: python scripts/evaluate.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: evaluation, path: test-results/evaluation.*}
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - run: npm install --global --force yarn@1.22.22
+      - run: yarn install --frozen-lockfile --non-interactive
+      - run: yarn typecheck
+      - run: yarn test
+      - run: yarn build
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.14'}
+      - run: python scripts/check_secrets.py
+      - run: python scripts/package_review.py
+  sandbox:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.14'}
+      - run: pip install -c constraints.txt '.[test]'
+      - run: docker build -f Dockerfile.sandbox -t codepilot-sandbox:local .
+      - run: python -m pytest tests/test_services.py -k container -q
+        env: {TEST_DOCKER_IMAGE: 'codepilot-sandbox:local'}

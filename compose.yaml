@@ -1,0 +1,60 @@
+name: codepilot
+services:
+  web:
+    image: nginx:alpine
+    profiles: [web]
+    ports: ["127.0.0.1:3000:80"]
+    volumes:
+      - ./ui/.output/public:/usr/share/nginx/html:ro
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on: [api]
+  api:
+    build: .
+    env_file: .env
+    environment:
+      CODEPILOT_LOAD_ENV: "false"
+      CODEPILOT_DATABASE_URL: postgresql://codepilot:${POSTGRES_PASSWORD:-codepilot-local-only}@postgres:5432/codepilot
+      CODEPILOT_REDIS_URL: redis://redis:6379/0
+      CODEPILOT_EMBEDDED_WORKER: "false"
+      AI_WORKSPACE_ROOT: /workspace
+      LX_AICODING_DATA_DIR: /data
+      LX_AICODING_LOG_DIR: /logs
+    ports: ["127.0.0.1:8000:8000"]
+    volumes:
+      - ${CODEPILOT_HOST_WORKSPACE:-./workspace}:/workspace
+      - app-data:/data
+      - app-logs:/logs
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: codepilot
+      POSTGRES_DB: codepilot
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-codepilot-local-only}
+    ports: ["127.0.0.1:54329:5432"]
+    volumes: ["postgres-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codepilot"]
+      interval: 5s
+      retries: 10
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports: ["127.0.0.1:63799:6379"]
+    volumes: ["redis-data:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+volumes:
+  postgres-data:
+  redis-data:
+  app-data:
+  app-logs:

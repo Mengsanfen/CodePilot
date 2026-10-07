@@ -1,4 +1,16 @@
 .env
+.env.*
+!.env.example
+!ui/.env.production
+!ui/.env.development
+.venv/
+.cache/
+.pytest_cache/
+workspace/
+data/
+*.sqlite-wal
+*.sqlite-shm
+test-results/
 logs/
 data/*.sqlite
 __pycache__/
@@ -7,3 +19,7 @@ ui/node_modules/
 ui/.tanstack/tmp/
 ui/tsconfig.tsbuildinfo
 ui/.output/
+dist/
+.tmp*/
+.idea/
+.vscode/

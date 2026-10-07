@@ -79,7 +79,7 @@ function fileToImageChunk(file: File): Promise<ImageChunk | null> {
 
 /** Web-adapted PromptBar from open-swe-app — local state, no Electron/Zustand deps. */
 export const CloudPromptBar = memo(function CloudPromptBarComponent({
-  placeholder = "让 LX-AICODING 构建、修复或检查一个 Gitee 仓库",
+  placeholder = "让 CodePilot 构建、修复或检查一个 Git 仓库",
   compact = false,
   disabled = false,
   busy = false,

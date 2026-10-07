@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from agent.reviewer_findings import ReviewFinding, format_findings_comment
-from agent.tools.gitee_api import post_pr_comment
+from agent.tools.scm import post_comment as post_pr_comment
 
 
 def publish_findings_to_gitee(

@@ -30,7 +30,7 @@ def start_process(
 def main() -> None:
     """同时启动课程版后端和前端。
 
-    后端运行在 http://127.0.0.1:2024。
+    后端运行在 http://127.0.0.1:8000。
     前端运行在 http://127.0.0.1:3000。
     按 Ctrl+C 会同时停止两个进程。
     """
@@ -45,7 +45,7 @@ def main() -> None:
             "--host",
             "127.0.0.1",
             "--port",
-            "2024",
+            "8000",
         ],
         PROJECT_ROOT,
     )
@@ -53,7 +53,7 @@ def main() -> None:
         "frontend",
         ["node", ".\\node_modules\\vite\\bin\\vite.js", "dev", "--host", "127.0.0.1", "--port", "3000"],
         PROJECT_ROOT / "ui",
-        env={"VITE_DASHBOARD_API_BASE_URL": "http://127.0.0.1:2024"},
+        env={"VITE_DASHBOARD_API_BASE_URL": "http://127.0.0.1:8000"},
     )
 
     try:
@@ -78,7 +78,7 @@ def main() -> None:
             except subprocess.TimeoutExpired:
                 process.kill()
         # 再按端口兜底清理，处理 PyCharm 停止按钮或 Windows 进程树残留。
-        stopped = stop_ports((2024, 3000))
+        stopped = stop_ports((8000, 3000))
         if stopped:
             print(f"已清理残留服务进程：{stopped}")
         sys.exit(0)

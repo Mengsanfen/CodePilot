@@ -16,7 +16,11 @@ def make_checkpointer(db_path: Path) -> SqliteSaver:
         from langgraph.checkpoint.postgres import PostgresSaver
         connection = psycopg.connect(database_url, autocommit=True, prepare_threshold=0, row_factory=dict_row)
         saver = PostgresSaver(connection)
-        saver.setup()
+        connection.execute('SELECT pg_advisory_lock(145887352)')
+        try:
+            saver.setup()
+        finally:
+            connection.execute('SELECT pg_advisory_unlock(145887352)')
         return saver
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(db_path), check_same_thread=False)

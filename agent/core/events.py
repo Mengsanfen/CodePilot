@@ -36,6 +36,9 @@ def record_event(
     """
 
     try:
+        from agent.security import redact
+        title = redact(title)
+        detail = redact(detail) if detail else detail
         from agent.orchestration.context import durable_event
         durable_event("agent.step", {"key": key, "title": title, "kind": kind, "status": status, "detail": detail})
         _get_event_store().add_run_event(

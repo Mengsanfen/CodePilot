@@ -11,6 +11,7 @@ import { useCancelAgentThread, useSendAgentMessage } from "@/lib/agents/queries"
 import { addPendingPrompt, dropPendingPrompts, getPendingPrompts } from "@/lib/agents/pendingPrompts";
 import { useAgentThreadStream } from "@/lib/agents/useThreadStream";
 import { useModelOptions } from "@/lib/agents/useModelOptions";
+import { RunControls } from "./RunControls";
 
 interface AgentThreadViewProps {
   user: SessionUser;
@@ -68,7 +69,7 @@ function liveStatusFor(thread: AgentThread, hasPendingPrompt: boolean): string |
 export function AgentThreadView({ user, thread }: AgentThreadViewProps) {
   const sendMessage = useSendAgentMessage(thread.id);
   const cancelThread = useCancelAgentThread(thread.id);
-  useAgentThreadStream(thread.id, thread.status === "running");
+  useAgentThreadStream(thread.id, thread.status === "running", thread.execution?.run_id);
   const [pendingPrompts, setPendingPrompts] = useState<Array<PendingPrompt>>(() =>
     getPendingPrompts(thread.id),
   );
@@ -139,6 +140,7 @@ export function AgentThreadView({ user, thread }: AgentThreadViewProps) {
   return (
     <AgentsShell user={user} activeThreadId={thread.id}>
       <div className="flex min-w-0 flex-1 flex-col">
+        <RunControls thread={thread} />
         <div className="flex min-h-0 flex-1 flex-col">
           {hasMessages ? (
             <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">

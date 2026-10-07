@@ -29,7 +29,7 @@ interface NavItem {
 
 const NAV: Array<NavItem> = [
   { to: "/my-settings", label: "Profile Settings", icon: IoOptionsOutline },
-  { to: "/cloud-agents", label: "LX-AICODING 智能体", icon: IoCloudOutline },
+  { to: "/cloud-agents", label: "CodePilot 智能体", icon: IoCloudOutline },
   { to: "/review", label: "PR Review", icon: IoGitPullRequestOutline },
   { to: "/usage", label: "Usage", icon: IoStatsChartOutline },
   { to: "/admin", label: "Admin", icon: IoSettingsOutline, adminOnly: true },
@@ -45,11 +45,11 @@ export function AppSidebar({ user }: { user: SessionUser }) {
           className="flex items-center gap-2 font-heading text-sm font-medium tracking-tight"
         >
           <img
-            src="https://www-static.mashibing.com/_nuxt/img/logo.69f6ec8.svg"
-            alt="马士兵"
+            src="/codepilot.svg"
+            alt="CodePilot"
             className="h-5 w-auto"
           />
-          LX-AICODING
+          CodePilot
         </Link>
         <SidebarCollapseButton onToggle={layout.toggle} />
       </div>

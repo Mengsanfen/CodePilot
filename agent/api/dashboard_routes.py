@@ -6,7 +6,7 @@ import re
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Header, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -15,6 +15,8 @@ from agent.core.background import run_task_safely
 from agent.core.runtime import delete_task, get_task, initialize_task_record, list_tasks
 from agent.core.task_intent import classify_task_kind
 from agent.env_utils import get_env
+from agent.orchestration.service import get_run_store, submit_run
+from agent.orchestration.store import RunConflict
 
 dashboard_router = APIRouter(prefix="/dashboard/api")
 
@@ -47,12 +49,14 @@ def _timestamp_ms(value: str | None) -> int:
 def _status_for_frontend(status: str | None) -> str:
     """把课程后端状态映射成 open-swe 前端 AgentStatus。"""
 
-    if status in {"running", "pushed", "pr_created"}:
+    if status in {"queued", "running", "cancelling", "pushed", "pr_created"}:
         return "running"
     if status in {"completed", "awaiting_approval"}:
         return "finished"
     if status == "failed":
         return "error"
+    if status in {"cancelled", "interrupted"}:
+        return "interrupted"
     return "idle"
 
 
@@ -309,7 +313,7 @@ def _format_visible_chinese_text(text: str) -> str:
 
 
 def _is_final_status(status: str | None) -> bool:
-    return status in {"completed", "failed", "awaiting_approval"}
+    return status in {"completed", "failed", "awaiting_approval", "cancelled", "interrupted"}
 
 
 def _should_hide_event(event: dict[str, Any]) -> bool:
@@ -578,6 +582,7 @@ def _thread_payload(thread: dict[str, Any]) -> dict[str, Any]:
         "effort": None,
         "source": "dashboard",
         "status": _status_for_frontend(thread.get("latest_run_status")),
+        "execution": thread.get("execution"),
         "createdAt": _timestamp_ms(thread.get("created_at")),
         "updatedAt": _timestamp_ms(thread.get("updated_at")),
         "messages": _message_payload(thread),
@@ -628,9 +633,9 @@ def dashboard_profile() -> dict[str, Any]:
         "reasoning_effort": "default",
         "default_subagent_model": None,
         "subagent_reasoning_effort": None,
-        "default_repo": "https://gitee.com/msb-goldbin/ai_coding",
-        "base_branch": "master",
-        "branch_prefix": "lx-aicoding",
+        "default_repo": get_env("DEFAULT_REPO_URL", "https://github.com/Mengsanfen/CodePilot.git"),
+        "base_branch": get_env("DEFAULT_BASE_BRANCH", "main"),
+        "branch_prefix": "codepilot",
         "auto_fix_ci": True,
         "create_prs": True,
         "review_draft_prs": False,
@@ -643,7 +648,7 @@ def dashboard_repos() -> dict[str, Any]:
         "installations": [],
         "repositories": [
             {
-                "full_name": "https://gitee.com/msb-goldbin/ai_coding",
+                "full_name": get_env("DEFAULT_REPO_URL", "https://github.com/Mengsanfen/CodePilot.git"),
                 "private": False,
             }
         ],
@@ -659,15 +664,16 @@ def dashboard_threads(limit: int = 50) -> list[dict[str, Any]]:
 async def dashboard_create_thread(
     body: DashboardThreadCreateRequest,
     background_tasks: BackgroundTasks,
+    idempotency_key: str | None = Header(None),
 ) -> dict[str, Any]:
-    repo_url = body.repo or "https://gitee.com/msb-goldbin/ai_coding"
-    thread_id = initialize_task_record(repo_url=repo_url, prompt=body.prompt)
-    background_tasks.add_task(
-        run_task_safely,
-        repo_url=repo_url,
-        prompt=body.prompt,
-        thread_id=thread_id,
-    )
+    repo_url = body.repo or get_env("DEFAULT_REPO_URL", "https://github.com/Mengsanfen/CodePilot.git")
+    try:
+        run = submit_run(repo_url=repo_url, prompt=body.prompt, request_key=idempotency_key)
+    except RunConflict as exc:
+        raise HTTPException(409, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    thread_id = run["thread_id"]
     task = get_task(thread_id)
     if task is None:
         raise HTTPException(status_code=500, detail="task was not persisted")
@@ -687,18 +693,18 @@ async def dashboard_send_message(
     thread_id: str,
     body: DashboardThreadMessageRequest,
     background_tasks: BackgroundTasks,
+    idempotency_key: str | None = Header(None),
 ) -> dict[str, Any]:
     task = get_task(thread_id)
     if task is None:
         raise HTTPException(status_code=404, detail="thread not found")
-    repo_url = task.get("repo_url") or "https://gitee.com/msb-goldbin/ai_coding"
-    initialize_task_record(repo_url=repo_url, prompt=body.content, thread_id=thread_id)
-    background_tasks.add_task(
-        run_task_safely,
-        repo_url=repo_url,
-        prompt=body.content,
-        thread_id=thread_id,
-    )
+    repo_url = task.get("repo_url") or get_env("DEFAULT_REPO_URL", "https://github.com/Mengsanfen/CodePilot.git")
+    try:
+        submit_run(repo_url=repo_url, prompt=body.content, thread_id=thread_id, request_key=idempotency_key)
+    except RunConflict as exc:
+        raise HTTPException(409, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
     updated = get_task(thread_id)
     if updated is None:
         raise HTTPException(status_code=500, detail="task was not persisted")
@@ -710,7 +716,10 @@ def dashboard_cancel_thread(thread_id: str) -> dict[str, Any]:
     task = get_task(thread_id)
     if task is None:
         raise HTTPException(status_code=404, detail="thread not found")
-    return _thread_payload(task)
+    run = get_run_store().latest(thread_id)
+    if run:
+        get_run_store().cancel(run["run_id"])
+    return _thread_payload(get_task(thread_id))
 
 
 @dashboard_router.post("/threads/{thread_id}/approve")
@@ -727,18 +736,24 @@ async def dashboard_approve_thread_plan(
     task = get_task(thread_id)
     if task is None:
         raise HTTPException(status_code=404, detail="thread not found")
-    repo_url = task.get("repo_url") or "https://gitee.com/msb-goldbin/ai_coding"
-    background_tasks.add_task(
-        run_task_safely,
-        repo_url=repo_url,
-        prompt="确认实施",
-        thread_id=thread_id,
-    )
-    return _thread_payload(task)
+    repo_url = task.get("repo_url") or get_env("DEFAULT_REPO_URL", "https://github.com/Mengsanfen/CodePilot.git")
+    from agent.core.runtime import _latest_confirmable_plan_message
+    plan = _latest_confirmable_plan_message(thread_id)
+    if not plan:
+        raise HTTPException(409, "没有待确认方案")
+    try:
+        submit_run(repo_url=repo_url, prompt="确认实施", thread_id=thread_id,
+                   request_key="approve:" + plan["message_id"])
+    except RunConflict as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return _thread_payload(get_task(thread_id))
 
 
 @dashboard_router.delete("/threads/{thread_id}", status_code=204)
 def dashboard_delete_thread(thread_id: str) -> None:
+    latest = get_run_store().latest(thread_id)
+    if latest and latest["status"] in {"queued", "running", "cancelling"}:
+        raise HTTPException(409, "请先取消运行，再删除会话")
     deleted = delete_task(thread_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="thread not found")
@@ -756,7 +771,7 @@ def dashboard_thread_stream(thread_id: str):
 
     async def event_iter():
         while True:
-            task = get_task(thread_id)
+            task = await asyncio.to_thread(get_task, thread_id)
             if task is None:
                 yield f"data: {json.dumps({'event': 'error', 'data': {'detail': 'thread not found'}}, ensure_ascii=False)}\n\n"
                 break

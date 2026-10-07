@@ -5,7 +5,7 @@ import logging
 from datetime import date
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Header, HTTPException
 
 from agent.api.schemas import TaskCreateRequest
 from agent.backends.permissions import WorkspacePermissionError
@@ -43,17 +43,23 @@ def health() -> dict[str, Any]:
     }
 
 
-@router.post("/api/tasks")
-async def create_task(body: TaskCreateRequest) -> dict[str, Any]:
+@router.post("/api/tasks", status_code=202)
+async def create_task(body: TaskCreateRequest, idempotency_key: str | None = Header(None)) -> dict[str, Any]:
     logger.info("收到任务请求：repo_url=%s thread_id=%s", body.repo_url, body.thread_id)
     try:
-        return await asyncio.to_thread(
-            run_agent_task,
+        from agent.orchestration.service import submit_run, public_run
+        run = await asyncio.to_thread(
+            submit_run,
             repo_url=body.repo_url,
             prompt=body.prompt,
             thread_id=body.thread_id,
+            request_key=idempotency_key,
         )
+        return public_run(run)
     except (ValueError, WorkspacePermissionError) as exc:
+        from agent.orchestration.store import RunConflict
+        if isinstance(exc, RunConflict):
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
         logger.warning("任务请求被拒绝：%s", exc)
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:

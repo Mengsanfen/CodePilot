@@ -7,6 +7,7 @@ import { Logo } from "@/components/agents/ported/Logo"
 import { useCreateAgentThread } from "@/lib/agents/queries"
 import { useModelOptions } from "@/lib/agents/useModelOptions"
 import { useProfile, useRepos } from "@/lib/profile"
+import { NewReview } from "./NewReview"
 
 export function AgentsHome() {
   const createThread = useCreateAgentThread()
@@ -57,6 +58,7 @@ export function AgentsHome() {
               {createError}
             </p>
           ) : null}
+          <NewReview repo={repo} />
         </div>
       </div>
     </div>

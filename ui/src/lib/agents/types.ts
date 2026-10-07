@@ -155,6 +155,12 @@ export interface AgentSchedule {
 }
 
 export interface AgentThread {
+  execution?: {
+    run_id: string
+    status: string
+    attempt: number
+    error?: string | null
+  } | null
   id: string
   title: string
   repo: string

@@ -57,17 +57,27 @@ class RunStore(LocalSqliteStore):
             );
         """)
         self._conn.commit()
+        from agent.orchestration.approvals import setup
+        setup(self)
+        from agent.orchestration.reviews import setup as setup_reviews
+        setup_reviews(self)
 
     @contextmanager
     def transaction(self):
         with self._lock:
+            if getattr(self, '_transaction_active', False):
+                yield
+                return
             self._conn.execute("BEGIN" if self.is_postgres else "BEGIN IMMEDIATE")
+            self._transaction_active = True
             try:
                 yield
                 self._conn.commit()
             except BaseException:
                 self._conn.rollback()
                 raise
+            finally:
+                self._transaction_active = False
 
     def _time(self) -> float:
         sql = ("SELECT EXTRACT(EPOCH FROM clock_timestamp()) AS now" if self.is_postgres
@@ -82,7 +92,9 @@ class RunStore(LocalSqliteStore):
 
     def get_run(self, run_id: str) -> dict | None:
         with self._lock:
-            row = self._conn.execute("SELECT * FROM execution_runs WHERE run_id=?", (run_id,)).fetchone()
+            # Called inside transactions as well; row locks serialize cancel/finish/recovery.
+            suffix = " FOR UPDATE" if self.is_postgres else ""
+            row = self._conn.execute("SELECT * FROM execution_runs WHERE run_id=?" + suffix, (run_id,)).fetchone()
             return dict(row) if row else None
 
     def latest(self, thread_id: str) -> dict | None:
@@ -93,13 +105,14 @@ class RunStore(LocalSqliteStore):
             return dict(row) if row else None
 
     def submit(self, *, repo_url: str, prompt: str, thread_id: str | None = None,
-               request_key: str | None = None) -> dict:
-        fingerprint = hashlib.sha256(encode([repo_url, prompt, thread_id]).encode()).hexdigest()
+               request_key: str | None = None, spec: dict | None = None) -> dict:
+        fingerprint = hashlib.sha256(encode([repo_url, prompt, thread_id] + ([spec] if spec else [])).encode()).hexdigest()
         with self.transaction():
             if request_key:
                 existing = self._conn.execute("SELECT * FROM execution_runs WHERE request_key=?", (request_key,)).fetchone()
                 if existing:
-                    if existing["request_hash"] != fingerprint:
+                    compatibility = hashlib.sha256(encode([repo_url, prompt, thread_id, {}]).encode()).hexdigest() if not spec else fingerprint
+                    if existing["request_hash"] not in {fingerprint, compatibility}:
                         raise RunConflict("Idempotency-Key 已用于不同请求")
                     return dict(existing)
             thread_id = thread_id or str(uuid.uuid4())
@@ -120,8 +133,21 @@ class RunStore(LocalSqliteStore):
                 user_prompt=excluded.user_prompt,latest_run_status='queued',updated_at=excluded.updated_at""",
                 (thread_id, prompt[:80], prompt, repo_url, now, now))
             run = self.get_run(run_id)
+            from agent.observability import trace_carrier
+            self._conn.execute('INSERT INTO run_specs(run_id,spec,trace_context) VALUES (?,?,?)',
+                               (run_id, encode(spec or {}), encode(trace_carrier())))
             self._event(run, "run.queued", {"status": "queued"})
             return run
+
+    def spec(self, run_id: str) -> dict:
+        with self._lock:
+            row = self._conn.execute('SELECT spec FROM run_specs WHERE run_id=?', (run_id,)).fetchone()
+            return json.loads(row['spec']) if row else {}
+
+    def trace_context(self, run_id: str) -> dict:
+        with self._lock:
+            row = self._conn.execute('SELECT trace_context FROM run_specs WHERE run_id=?', (run_id,)).fetchone()
+            return json.loads(row['trace_context']) if row else {}
 
     def claim(self, owner: str, lease_seconds: float = 30) -> dict | None:
         with self.transaction():
@@ -183,8 +209,9 @@ class RunStore(LocalSqliteStore):
 
     def recover_expired(self) -> int:
         with self.transaction():
+            suffix = " FOR UPDATE SKIP LOCKED" if self.is_postgres else ""
             rows = self._conn.execute("""SELECT * FROM execution_runs
-                WHERE status IN ('running','cancelling') AND lease_until < ?""", (self._time(),)).fetchall()
+                WHERE status IN ('running','cancelling') AND lease_until < ?""" + suffix, (self._time(),)).fetchall()
             for run in rows:
                 status = "cancelled" if run["cancel_requested"] else "interrupted"
                 error = "Worker 租约过期；请核对外部操作后显式恢复"
@@ -219,6 +246,9 @@ class RunStore(LocalSqliteStore):
                 raise KeyError(run_id)
             if run["status"] != "interrupted" or not run["execution_context"]:
                 raise RunConflict("仅可恢复有 Checkpoint 执行上下文的 interrupted 任务")
+            import os
+            if run['attempt'] >= int(os.environ.get('CODEPILOT_MAX_ATTEMPTS', '3')):
+                raise RunConflict('已达到恢复尝试上限，请检查失败原因并创建新任务')
             if (run["lease_until"] or 0) + 5 > self._time():
                 raise RunConflict("等待旧进程看门狗停止后再恢复")
             if self._conn.execute("""SELECT run_id FROM execution_runs WHERE thread_id=?

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import uuid
+import hashlib
 from typing import Any
 
 from langchain_core.tools import tool
@@ -23,7 +23,22 @@ def add_review_finding(
     if not thread_id:
         return {"status": "error", "error": "缺少 thread_id，无法记录审查发现。"}
 
-    finding_id = f"finding-{uuid.uuid4().hex[:8]}"
+    from agent.tools.review_context import current_repo, validate_finding
+    from agent.orchestration.context import check_execution
+    check_execution()
+    try:
+        snapshot = validate_finding(current_repo(), file, line, severity)
+    except ValueError as exc:
+        return {"status": "error", "error": str(exc)}
+    identity = f"{thread_id}:{snapshot['digest']}:{file}:{line}:{title.strip().lower()}"
+    finding_id = "finding-" + hashlib.sha256(identity.encode()).hexdigest()[:24]
+    from agent.orchestration.context import identity as run_identity
+    current = run_identity()
+    if current:
+        from agent.orchestration.service import get_run_store
+        from agent.orchestration.reviews import record_finding
+        finding_id = record_finding(get_run_store(), *current, snapshot,
+            {'file': file, 'line': line, 'severity': severity, 'title': title, 'description': description})
     get_store().add_finding(
         finding_id=finding_id,
         thread_id=thread_id,

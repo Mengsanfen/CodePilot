@@ -110,7 +110,7 @@ function UsagePage() {
           </p>
         ) : !leaderboard.data?.rows.length ? (
           <div className="p-6 text-center text-sm text-muted-foreground">
-            {PERIOD_LABELS[activePeriod].toLowerCase()} 还没有记录 LX-AICODING 用量。
+            {PERIOD_LABELS[activePeriod].toLowerCase()} 还没有记录 CodePilot 用量。
           </div>
         ) : (
           <UsageTable

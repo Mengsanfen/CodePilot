@@ -140,8 +140,8 @@ function CloudAgentsPage() {
   return (
     <AppShell
       user={session.data}
-      title="LX-AICODING 智能体"
-      description="Configure how LX-AICODING picks a model, Gitee repository, and PR defaults."
+      title="CodePilot 智能体"
+      description="Configure how CodePilot picks a model, Git repository, and PR defaults."
     >
       <SettingsSection title="Defaults">
         <div className="divide-y divide-border">

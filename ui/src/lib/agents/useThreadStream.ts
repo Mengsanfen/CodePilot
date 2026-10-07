@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 
 import { agentsApi } from "./api";
+import { runUrl } from "./runs";
 import { agentThreadKeys } from "./queries";
 import type { AgentThread, Message, TextChunk } from "./types";
 
@@ -104,11 +105,31 @@ function handleStreamPart(
   queryClient.invalidateQueries({ queryKey: agentThreadKeys.detail(threadId) });
 }
 
-export function useAgentThreadStream(threadId: string, enabled: boolean) {
+export function useAgentThreadStream(threadId: string, enabled: boolean, runId?: string) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!enabled) return;
+    if (runId) {
+      // EventSource reconnects with Last-Event-ID; replay invalidates snapshots,
+      // so duplicate delivery never appends the same token twice.
+      const source = new EventSource(runUrl(runId, "/stream"));
+      let refresh: ReturnType<typeof setTimeout> | undefined;
+      const invalidate = () => {
+        if (refresh !== undefined) return;
+        refresh = setTimeout(() => {
+          refresh = undefined;
+          void queryClient.invalidateQueries({ queryKey: agentThreadKeys.detail(threadId) });
+          void queryClient.invalidateQueries({ queryKey: ["run-operations", runId] });
+        }, 150);
+      };
+      for (const event of ["agent.step", "run.queued", "run.started", "run.cancelling", "run.cancelled",
+        "run.completed", "run.failed", "run.interrupted", "run.resuming", "operation.proposed", "context.loaded"]) {
+        source.addEventListener(event, invalidate);
+      }
+      source.addEventListener("done", () => { invalidate(); source.close(); });
+      return () => { source.close(); if (refresh !== undefined) clearTimeout(refresh); };
+    }
 
     const controller = new AbortController();
     let cancelled = false;
@@ -163,5 +184,5 @@ export function useAgentThreadStream(threadId: string, enabled: boolean) {
       cancelled = true;
       controller.abort();
     };
-  }, [enabled, queryClient, threadId]);
+  }, [enabled, queryClient, threadId, runId]);
 }

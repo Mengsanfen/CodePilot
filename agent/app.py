@@ -8,6 +8,10 @@
 """
 from __future__ import annotations
 
+import os
+import threading
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -33,10 +37,35 @@ from agent.api import dashboard_router, router  # noqa: E402
 # ---------------------------------------------------------------
 # 创建 FastAPI 应用实例
 # ---------------------------------------------------------------
-app = FastAPI(
-    title="LX-AICODING Course Backend",  # 应用名称
-    version="0.1.0",                     # 应用版本号
-)
+@asynccontextmanager
+async def lifespan(app):
+    from agent.orchestration.service import get_run_store
+    get_run_store()
+    stop, worker_thread = threading.Event(), None
+    if os.environ.get("CODEPILOT_EMBEDDED_WORKER", "true").lower() == "true":
+        from agent.orchestration.worker import Worker
+        worker_thread = threading.Thread(target=Worker().serve, args=(stop,), daemon=True)
+        worker_thread.start()
+    yield
+    stop.set()
+    if worker_thread:
+        import asyncio
+        await asyncio.to_thread(worker_thread.join, 15)
+
+
+app = FastAPI(title="CodePilot Agent Platform", version="0.2.0", lifespan=lifespan)
+
+
+@app.middleware('http')
+async def trace_requests(request, call_next):
+    from agent.observability import tracer
+    from opentelemetry.propagate import extract
+    with tracer().start_as_current_span('api.request', context=extract(dict(request.headers)),
+                                       attributes={'http.request.method': request.method}) as span:
+        response = await call_next(request)
+        span.set_attribute('http.response.status_code', response.status_code)
+        response.headers['X-Trace-ID'] = format(span.get_span_context().trace_id, '032x')
+        return response
 
 # ---------------------------------------------------------------
 # 配置 CORS 中间件
@@ -67,3 +96,7 @@ app.add_middleware(
 # ---------------------------------------------------------------
 app.include_router(router)
 app.include_router(dashboard_router)
+from agent.api.run_routes import run_router
+app.include_router(run_router)
+from agent.api.review_routes import review_router
+app.include_router(review_router)

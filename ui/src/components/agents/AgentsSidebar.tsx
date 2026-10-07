@@ -62,11 +62,11 @@ export function AgentsSidebar({ user, activeThreadId }: AgentsSidebarProps) {
           className="flex items-center gap-2 font-heading text-sm font-medium tracking-tight text-[var(--ui-text)]"
         >
           <img
-            src="https://www-static.mashibing.com/_nuxt/img/logo.69f6ec8.svg"
-            alt="马士兵"
+            src="/codepilot.svg"
+            alt="CodePilot"
             className="h-5 w-auto"
           />
-          LX-AICODING
+          CodePilot
         </Link>
         <SidebarCollapseButton onToggle={layout.toggle} />
       </div>

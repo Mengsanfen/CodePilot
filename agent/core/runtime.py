@@ -129,7 +129,7 @@ def _build_agent_user_content(
         if approved_plan:
             plan_instruction = f"\n\n用户已经确认以下技术方案，请按该方案实施；如执行中发现必要调整，请在最终总结中说明：\n{approved_plan}"
         task_instruction = (
-            "这是开发实现任务。请按系统开发流程完成任务，必要时修改代码、验证，并创建或复用 Gitee Pull Request。"
+            "这是开发实现任务。请按系统开发流程完成任务，必要时修改代码、验证，按用户要求提出外部发布申请，等待平台审批。"
             f"{plan_instruction}"
         )
     else:
@@ -139,7 +139,7 @@ def _build_agent_user_content(
             "完成后直接用中文回答用户问题。"
         )
     return (
-        f"Gitee 仓库地址：{repo_url}\n\n"
+        f"Git 仓库地址：{repo_url}\n\n"
         f"任务类型：{task_kind}\n\n"
         f"用户任务：\n{prompt}\n\n"
         f"{task_instruction}"
@@ -161,7 +161,7 @@ def _build_plan_user_content(
 
     if previous_plan and revision_prompt:
         return (
-            f"Gitee 仓库地址：{repo_url}\n\n"
+            f"Git 仓库地址：{repo_url}\n\n"
             f"原始用户需求：\n{prompt}\n\n"
             f"上一版技术方案：\n{previous_plan}\n\n"
             f"用户新的修改要求：\n{revision_prompt}\n\n"
@@ -179,7 +179,7 @@ def _build_plan_user_content(
         )
 
     return (
-        f"Gitee 仓库地址：{repo_url}\n\n"
+        f"Git 仓库地址：{repo_url}\n\n"
         f"用户需求：\n{prompt}\n\n"
         "请只生成技术方案，不要修改文件、不要提交、不要 push、不要创建 Pull Request。\n"
         "方案必须使用中文 Markdown，建议包含：\n"
@@ -797,6 +797,11 @@ def get_task(thread_id: str) -> dict[str, Any] | None:
     thread["latest_run"] = store.get_latest_run(thread_id)
     thread["run_events"] = store.list_run_events(thread_id)
     thread["messages"] = store.list_thread_messages(thread_id)
+    from agent.orchestration.service import get_run_store, public_run
+    execution = get_run_store().latest(thread_id)
+    if execution:
+        thread["execution"] = public_run(execution)
+        thread["latest_run_status"] = execution["status"]
     return thread
 
 
@@ -810,6 +815,11 @@ def list_tasks(limit: int = 50) -> list[dict[str, Any]]:
         thread["latest_run"] = store.get_latest_run(thread_id)
         thread["run_events"] = store.list_run_events(thread_id)
         thread["messages"] = store.list_thread_messages(thread_id)
+        from agent.orchestration.service import get_run_store, public_run
+        execution = get_run_store().latest(thread_id)
+        if execution:
+            thread["execution"] = public_run(execution)
+            thread["latest_run_status"] = execution["status"]
     return threads
 
 

@@ -10,7 +10,7 @@ import time
 import uuid
 
 from agent.core.settings import LOG_DIR, PROJECT_ROOT
-from agent.orchestration.processes import process_options, stop_process_tree
+from agent.orchestration.processes import process_options, stop_process_tree, attach_process_tree
 from agent.orchestration.service import get_run_store
 from agent.orchestration.store import LeaseLost
 from agent.orchestration.transport import poll_notifications
@@ -45,6 +45,7 @@ class Worker:
                     cwd=PROJECT_ROOT, env=env, stdout=output, stderr=subprocess.STDOUT,
                     **process_options(),
                 )
+                attach_process_tree(process)
                 while True:
                     current = self.store.heartbeat(run_id, token, self.lease_seconds)
                     if current["cancel_requested"]:
@@ -55,6 +56,9 @@ class Worker:
                         break
                     if time.monotonic() - started > self.timeout:
                         error = "运行超过硬超时上限"
+                        if self.store.get_run(run_id)['execution_context']:
+                            status = 'interrupted'
+                            error += '；核对外部操作后可显式恢复 Checkpoint'
                         break
                     if process.poll() is not None:
                         status = "completed" if process.returncode == 0 else "failed"
@@ -71,6 +75,16 @@ class Worker:
         finally:
             if process is not None:
                 stop_process_tree(process)
+            if os.environ.get('CODEPILOT_EXECUTION_BACKEND') == 'docker':
+                from agent.backends.docker import cleanup_run_containers
+                cleanup_run_containers(run_id)
+        if status != 'cancelled':
+            try:
+                self.store.append_event(run_id, token, 'run.metrics',
+                                        {'duration_seconds': round(time.monotonic() - started, 3),
+                                         'attempt': run['attempt'], 'outcome': status})
+            except LeaseLost:
+                pass
         self.store.finish(run_id, token, status, error)
         return True
 

@@ -9,7 +9,7 @@ export function HeaderBar({ compact }: HeaderBarProps) {
         <pre className="text-[#e07a5f] leading-none text-[10px] m-0">{`╭─╮
 │◠│
 ╰─╯`}</pre>
-        <span className="text-gray-300 font-medium">LX-AICODING</span>
+        <span className="text-gray-300 font-medium">CodePilot</span>
       </div>
     );
   }
@@ -21,7 +21,7 @@ export function HeaderBar({ compact }: HeaderBarProps) {
  │ ◠ │
  ╰───╯`}
       </pre>
-      <span className="text-gray-200 font-semibold">LX-AICODING</span>
+      <span className="text-gray-200 font-semibold">CodePilot</span>
     </div>
   );
 }

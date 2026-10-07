@@ -14,19 +14,25 @@ class GiteeRepo:
     owner: str
     repo: str
     clone_url: str
+    provider: str = "gitee"
 
 
 def parse_gitee_repo_url(repo_url: str) -> GiteeRepo:
     parsed = urlparse(repo_url.strip())
     hostname = (parsed.hostname or "").lower()
-    if hostname not in {"gitee.com", "www.gitee.com"}:
-        raise ValueError("第一版只支持 gitee.com 仓库地址")
+    if parsed.scheme != "https" or hostname not in {"gitee.com", "www.gitee.com", "github.com", "www.github.com"}:
+        raise ValueError("仅支持 GitHub/Gitee HTTPS 仓库地址")
+    if parsed.username or parsed.password or parsed.port or parsed.query or parsed.fragment:
+        raise ValueError("仓库地址不能包含凭据、端口、查询或片段")
     parts = [p for p in parsed.path.strip("/").split("/") if p]
-    if len(parts) < 2:
+    if len(parts) != 2:
         raise ValueError(f"无法解析 Gitee 仓库地址: {repo_url}")
     owner = parts[0]
     repo = re.sub(r"\.git$", "", parts[1])
-    return GiteeRepo(owner=owner, repo=repo, clone_url=f"https://gitee.com/{owner}/{repo}.git")
+    if not all(re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.-]*", part) and part not in {".", ".."} for part in (owner, repo)):
+        raise ValueError("非法仓库 owner/name")
+    provider = "github" if hostname.endswith("github.com") else "gitee"
+    return GiteeRepo(owner=owner, repo=repo, clone_url=f"https://{provider}.com/{owner}/{repo}.git", provider=provider)
 
 
 def authenticated_clone_url(repo: GiteeRepo) -> str:
@@ -50,12 +56,8 @@ def get_gitee_token() -> str:
 
 
 def mask_token(text: str) -> str:
-    masked = text
-    for token_name in ("GITEE_TOKEN", "SCM_GITEE_TOKEN"):
-        token = get_env(token_name).strip()
-        if token:
-            masked = masked.replace(token, "***")
-    return masked
+    from agent.security import redact
+    return redact(text)
 
 
 def _existing_pr_from_error(text: str) -> dict | None:

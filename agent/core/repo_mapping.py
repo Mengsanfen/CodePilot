@@ -48,8 +48,8 @@ def _candidate_remote_urls(repo_url: str) -> set[str]:
     return {
         repo.clone_url.lower(),
         repo.clone_url.removesuffix(".git").lower(),
-        f"git@gitee.com:{repo.owner}/{repo.repo}.git".lower(),
-        f"git@gitee.com:{repo.owner}/{repo.repo}".lower(),
+        f"git@{repo.provider}.com:{repo.owner}/{repo.repo}.git".lower(),
+        f"git@{repo.provider}.com:{repo.owner}/{repo.repo}".lower(),
     }
 
 
@@ -70,6 +70,12 @@ def _read_origin_remote(repo_path: Path) -> str | None:
     """读取本地 Git 仓库的 origin remote 地址。"""
 
     config_path = repo_path / ".git" / "config"
+    if (repo_path / '.git').is_file():
+        from agent.tools.review_context import git_read
+        try:
+            return git_read(repo_path, 'remote', 'get-url', 'origin').strip()
+        except ValueError:
+            return None
     if not config_path.exists():
         return None
     parser = configparser.ConfigParser()

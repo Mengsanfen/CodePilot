@@ -28,8 +28,8 @@ const config = defineConfig({
       },
       manifest: {
         id: "/",
-        name: "LX-AICODING",
-        short_name: "LX-AICODING",
+        name: "CodePilot",
+        short_name: "CodePilot",
         description: "Enterprise AI coding service.",
         start_url: "/",
         scope: "/",
@@ -52,7 +52,7 @@ const config = defineConfig({
       },
       workbox: {
         navigateFallback: "/_shell.html",
-        navigateFallbackDenylist: [/^\/dashboard\/api\//, /^\/_serverFn\//],
+        navigateFallbackDenylist: [/^\/dashboard\/api\//, /^\/api\//, /^\/_serverFn\//],
         globPatterns: ["**/*.{js,css,png,svg,ico,webmanifest}"],
         additionalManifestEntries: [
           { url: "/_shell.html", revision: new Date().toISOString() },

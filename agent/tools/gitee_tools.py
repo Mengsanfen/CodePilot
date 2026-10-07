@@ -7,7 +7,7 @@ from langchain_core.tools import tool
 
 from agent.core.events import record_event
 from agent.core.graph import get_store
-from agent.tools.gitee_api import create_pull_request, post_pr_comment
+from agent.tools.scm import create_pr as create_pull_request, post_comment as post_pr_comment
 from agent.tools.runtime_context import get_runtime_thread_id, runtime_is_read_only_task
 
 logger = logging.getLogger("agent.run.gitee")
@@ -18,11 +18,11 @@ def open_gitee_pull_request(
     owner: str,
     repo: str,
     head: str,
-    base: str = "master",
+    base: str = "main",
     title: str = "LX-AICODING generated changes",
     body: str = "由 LX-AICODING 自动生成。",
 ) -> dict[str, Any]:
-    """为已经推送到 Gitee 的分支创建或复用 Pull Request。"""
+    """为 GitHub/Gitee 的已有分支提出 PR 发布申请，等待用户审批后执行。"""
 
     if runtime_is_read_only_task():
         return {
@@ -43,6 +43,8 @@ def open_gitee_pull_request(
         record_event(thread_id, "gitee:pr", "创建或复用 Pull Request", kind="fetch", status="in_progress")
 
     pr = create_pull_request(owner=owner, repo=repo, head=head, base=base, title=title, body=body)
+    if 'operation_id' in pr:
+        return pr
     pr_url = pr.get("html_url") or pr.get("url") or ""
 
     if thread_id:
@@ -65,7 +67,7 @@ def open_gitee_pull_request(
 
 @tool
 def publish_gitee_pr_comment(owner: str, repo: str, number: int, body: str) -> dict[str, Any]:
-    """向指定 Gitee Pull Request 发布普通评论。"""
+    """为 GitHub/Gitee PR 提出评论发布申请，等待用户审批。"""
 
     logger.info("准备发布 Gitee PR 评论：owner=%s repo=%s number=%s", owner, repo, number)
     return post_pr_comment(owner=owner, repo=repo, number=number, body=body)

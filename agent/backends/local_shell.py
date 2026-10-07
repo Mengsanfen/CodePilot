@@ -69,12 +69,8 @@ _DANGEROUS_PATTERNS = (
 def _mask_token(text: str) -> str:
     """把文本中的 Gitee Token 替换为 ***，防止泄露到日志和返回值里。"""
 
-    masked = text
-    for token_name in ("GITEE_TOKEN", "SCM_GITEE_TOKEN"):
-        token = get_env(token_name).strip()
-        if token:
-            masked = masked.replace(token, "***")
-    return masked
+    from agent.security import redact
+    return redact(text)
 
 
 @dataclass
@@ -102,6 +98,7 @@ class LocalShellBackend(BaseSandbox):
         workspace: Workspace | str | os.PathLike[str] | None = None,
         *,
         timeout: int = 3600,
+        read_only: bool = False,
     ) -> None:
         # 确定工作区根目录：传入的 workspace > 环境变量 > settings.py 的默认值
         if isinstance(workspace, Workspace):
@@ -125,6 +122,7 @@ class LocalShellBackend(BaseSandbox):
             "LOCAL_SHELL_SHARED_PYTHON_VENV",
             r"runtimes\python\default\.venv",
         )
+        self.read_only = read_only
         self.default_timeout = timeout
         # 命令安全守卫，默认开启
         self.command_guard_enabled = (
@@ -171,6 +169,10 @@ class LocalShellBackend(BaseSandbox):
 
     def execute(self, command: str, *, timeout: int | None = None) -> ExecuteResponse:
         """执行 shell 命令（带安全守卫和虚拟路径转换）。"""
+        from agent.orchestration.context import check_execution
+        check_execution()
+        if self.read_only:
+            raise PermissionError("只读 Agent 禁止执行 shell，请使用文件检索工具")
         if self.command_guard_enabled:
             denied = self._deny_reason(command)
             if denied:
@@ -187,7 +189,7 @@ class LocalShellBackend(BaseSandbox):
                 encoding="utf-8",
                 errors="replace",
                 timeout=effective_timeout,
-                env=self._execution_env(),
+                env=self._command_env(),
                 check=False,
                 shell=True,
             )
@@ -229,7 +231,7 @@ class LocalShellBackend(BaseSandbox):
                         "size": child.stat().st_size if child.is_file() else 0,
                         "modified_at": datetime.fromtimestamp(child.stat().st_mtime, UTC).isoformat(),
                     }
-                    for child in sorted(resolved.iterdir(), key=lambda p: p.name.lower())
+                    for child in sorted(resolved.iterdir(), key=lambda p: p.name.lower()) if not self._hidden_path(child)
                 ]
             )
         except PermissionError as exc:
@@ -316,6 +318,8 @@ class LocalShellBackend(BaseSandbox):
             base = self._resolve_virtual_path(path or "/")
             matches = []
             for child in base.rglob("*"):
+                if self._hidden_path(child):
+                    continue
                 virtual = self._to_virtual_path(child)
                 if fnmatch.fnmatch(virtual, pattern) or fnmatch.fnmatch(child.name, pattern):
                     matches.append(
@@ -337,6 +341,8 @@ class LocalShellBackend(BaseSandbox):
             files = [base] if base.is_file() else [p for p in base.rglob("*") if p.is_file()]
             matches = []
             for file in files:
+                if self._hidden_path(file):
+                    continue
                 if glob and not fnmatch.fnmatch(file.name, glob):
                     continue
                 try:
@@ -438,7 +444,7 @@ class LocalShellBackend(BaseSandbox):
             timeout=timeout,
             encoding="utf-8",
             errors="replace",
-            env=self._execution_env(),
+            env=self._command_env(),
         )
         logger.info(
             "命令结束：exit_code=%s command=%s stdout_bytes=%s stderr_bytes=%s",
@@ -588,6 +594,8 @@ class LocalShellBackend(BaseSandbox):
         # 安全检查：必须落在工作区范围内
         if not self._is_under_root(resolved):
             raise PermissionError(f"path outside local workspace is denied: {path}")
+        if self._hidden_path(resolved):
+            raise PermissionError("敏感路径禁止访问")
         return resolved
 
     def _to_virtual_path(self, path: Path) -> str:
@@ -618,6 +626,12 @@ class LocalShellBackend(BaseSandbox):
 
     def _write_deny_reason(self, path: Path) -> str | None:
         """检查目录是否禁止写入 —— skills/policies/runtimes/logs/secrets 都是只读的。"""
+        from agent.orchestration.context import check_execution
+        check_execution()
+        if self.read_only:
+            return "write denied: read-only Agent"
+        if self._hidden_path(path):
+            return "write denied: sensitive path"
         if self._is_under(path, self.policies_dir):
             return "write denied: policies are read-only"
         if self._is_under(path, self.skills_dir):
@@ -661,13 +675,13 @@ class LocalShellBackend(BaseSandbox):
         prepared = command.replace("python3 ", "python ")
         prepared = _VIRTUAL_PATH_RE.sub(self._virtual_command_path_replacement, prepared)
         # 兼容 Unix 常用命令
-        if prepared.strip() == "pwd":
+        if os.name == "nt" and prepared.strip() == "pwd":
             return "cd"
         if prepared.startswith('printf %s "$HOME"'):
             return "echo %USERPROFILE%"
         if prepared.startswith("test -d "):
             return "echo ok"
-        return self._prepare_git_command(prepared)
+        return prepared
 
     def _prepare_git_command(self, command: str) -> str:
         """给 git 命令注入 askpass 配置，避免弹窗或使用过期的凭据管理器。"""
@@ -693,6 +707,10 @@ class LocalShellBackend(BaseSandbox):
             command = command.split("&&", 1)[1].strip() if "&&" in command else ""
         if not command:
             raise ValueError("Command cannot be empty")
+        from agent.orchestration.context import check_execution
+        check_execution()
+        if self.read_only:
+            raise PermissionError("只读 Agent 禁止执行 shell，请使用文件检索工具")
         if self.command_guard_enabled:
             denied = self._deny_reason(command)
             if denied:
@@ -717,6 +735,18 @@ class LocalShellBackend(BaseSandbox):
         if not self._is_under_root(path):
             raise PermissionError(f"virtual path escapes workspace: {match.group(0)}")
         return f'"{path}"'
+
+    def _hidden_path(self, path: Path) -> bool:
+        resolved = path.resolve()
+        if not self._is_under_root(resolved):
+            return True
+        parts = [part.lower() for part in resolved.relative_to(self.root).parts]
+        return any(part in {".git", ".secrets", ".git-cache", ".env"} or part.endswith((".pem", ".key"))
+                   or (part.startswith(".env.") and part != ".env.example") for part in parts)
+
+    def _command_env(self) -> dict[str, str]:
+        from agent.security import command_environment
+        return command_environment()
 
     def _execution_env(self) -> dict[str, str]:
         """构造子进程环境变量：注入 venv、Git 安全配置、Gitee 认证信息。"""

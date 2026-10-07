@@ -1,0 +1,78 @@
+[
+  {
+    "id": "fix-clamp",
+    "category": "bugfix",
+    "prompt": "修复 /projects/task/solution.py 中的 clamp，使结果处于闭区间 low..high，low 大于 high 时抛出 ValueError。直接修改文件，不需要提交。",
+    "source": "def clamp(value, low, high):\n    return min(low, max(high, value))\n",
+    "checks": "from solution import clamp\nassert [clamp(x, 0, 10) for x in [-3, 0, 4, 10, 12]] == [0, 0, 4, 10, 10]\ntry:\n    clamp(1, 5, 0)\nexcept ValueError:\n    pass\nelse:\n    raise AssertionError('invalid bounds accepted')\n"
+  },
+  {
+    "id": "implement-chunks",
+    "category": "feature",
+    "prompt": "实现 /projects/task/solution.py 的 chunks(items, size)：按顺序返回分块的列表，支持任意 iterable，尾块可不足 size，空输入返回空列表，size<=0 时抛 ValueError。直接修改文件，不提交。",
+    "source": "def chunks(items, size):\n    raise NotImplementedError\n",
+    "checks": "from solution import chunks\nassert chunks(iter(range(5)), 2) == [[0,1],[2,3],[4]]\nassert chunks([], 3) == []\nassert chunks([1], 2) == [[1]]\nfor size in [0,-1]:\n    try:\n        chunks([1], size)\n    except ValueError:\n        pass\n    else:\n        raise AssertionError('invalid size accepted')\n"
+  },
+  {
+    "id": "review-boundary",
+    "category": "review",
+    "prompt": "只读审查 /projects/task/solution.py。count 是要取出的元素数量，应允许等于 len(items)。找出会造成正常输入失败的缺陷。只输出 JSON 数组，每条包含 file（solution.py）、line、description。不修改文件，不执行命令。",
+    "source": "def take(items, count):\n    if count < 0 or count >= len(items):\n        raise ValueError('invalid count')\n    return items[:count]\n",
+    "expected_line": 2,
+    "expected_findings": [
+      {
+        "file": "solution.py",
+        "line": 2
+      }
+    ]
+  },
+  {
+    "id": "fix-offset",
+    "category": "bugfix",
+    "prompt": "修复 /projects/task/solution.py 的 page：number 从 1 开始，size 必须大于 0，返回对应分页列表，非法 number/size 抛 ValueError。直接修改文件。",
+    "source": "def page(items, number, size):\n    return items[number * size:(number + 1) * size]\n",
+    "checks": "from solution import page\nassert page(list(range(7)),1,3)==[0,1,2]\nassert page(list(range(7)),3,3)==[6]\nassert page([],1,2)==[]\nfor n,s in [(0,2),(1,0),(-1,1)]:\n    try: page([1],n,s)\n    except ValueError: pass\n    else: raise AssertionError('invalid paging accepted')\n"
+  },
+  {
+    "id": "feature-dedupe",
+    "category": "feature",
+    "prompt": "实现 /projects/task/solution.py 的 unique(items)：返回去重列表，保留首次出现顺序，支持 generator 和不可哈希元素（如 list），不能改变原输入。直接修改。",
+    "source": "def unique(items):\n    raise NotImplementedError\n",
+    "checks": "from solution import unique\nassert unique(iter([3,1,3,2]))==[3,1,2]\nx=[[1],[2],[1]]\nassert unique(x)==[[1],[2]]\nassert x==[[1],[2],[1]]\nassert unique([])==[]\n"
+  },
+  {
+    "id": "review-default",
+    "category": "review",
+    "prompt": "只读审查 /projects/task/solution.py。每次不传 bucket 调用 add 时都应该得到独立列表。只输出 JSON 数组（file=solution.py、line、description），每个缺陷只报告一次，无缺陷返回 []。",
+    "source": "def add(value, bucket=[]):\n    bucket.append(value)\n    return bucket\n",
+    "expected_findings": [
+      {
+        "file": "solution.py",
+        "line": 1
+      }
+    ]
+  },
+  {
+    "id": "review-clean",
+    "category": "review",
+    "prompt": "只读审查 /projects/task/solution.py 的 clamp，约定闭区间 low..high 且 low>high 抛 ValueError。只报告确定的逻辑缺陷，无缺陷返回 []。只输出 JSON 数组（file=solution.py、line、description）。",
+    "source": "def clamp(value, low, high):\n    if low > high:\n        raise ValueError('invalid bounds')\n    return max(low, min(high, value))\n",
+    "expected_findings": []
+  },
+  {
+    "id": "review-two-bugs",
+    "category": "review",
+    "prompt": "只读审查 /projects/task/solution.py：total([]) 应返回 0，其他情况返回所有元素之和；first_even 应返回首个偶数，未找到返回 None。定位真实缺陷，每个缺陷只报告一次。只输出 JSON 数组（file=solution.py、line、description）。",
+    "source": "def total(items):\n    return sum(items[1:])\n\ndef first_even(items):\n    for value in items:\n        if value % 2 == 1:\n            return value\n    return None\n",
+    "expected_findings": [
+      {
+        "file": "solution.py",
+        "line": 2
+      },
+      {
+        "file": "solution.py",
+        "line": 6
+      }
+    ]
+  }
+]

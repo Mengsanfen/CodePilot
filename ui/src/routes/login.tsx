@@ -28,9 +28,9 @@ function Login() {
     <main className="flex min-h-svh items-center justify-center p-6">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>登录 LX-AICODING</CardTitle>
+          <CardTitle>登录 CodePilot</CardTitle>
           <CardDescription>
-            使用控制台账号配置模型、Gitee 仓库和手动编码任务。
+            使用控制台账号配置模型、Git 仓库和手动编码任务。
           </CardDescription>
         </CardHeader>
         <CardContent>

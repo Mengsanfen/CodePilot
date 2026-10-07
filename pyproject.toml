@@ -1,15 +1,34 @@
 [project]
-name = "lx-aicoding-course"
-version = "0.1.0"
-description = "LX-AICODING course backend"
+name = "codepilot"
+version = "0.2.0"
+description = "Recoverable coding agents with isolated execution and reviewable publication"
 requires-python = ">=3.14"
 dependencies = [
-  "deepagents>=0.6.11",
+  "deepagents==0.6.11",
   "fastapi>=0.138.0",
   "uvicorn>=0.49.0",
   "langchain-openai>=1.3.2",
   "langgraph-checkpoint-sqlite>=3.1.0",
+  "langgraph-checkpoint-postgres>=3.1.2,<4",
+  "psycopg[binary,pool]>=3.3.6,<4",
+  "redis>=7.4.1,<8",
+  "opentelemetry-api>=1.44.0,<2",
+  "opentelemetry-sdk>=1.44.0,<2",
+  "httpx>=0.28.1,<1",
   "python-dotenv>=1.2.2",
   "requests>=2.32.0",
   "zhipuai>=2.1.5",
 ]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<10"]
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["agent*"]
+
+[tool.setuptools.package-data]
+agent = ["skills/**/*", "memory/*.md"]

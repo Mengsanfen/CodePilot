@@ -1,41 +1,20 @@
 from __future__ import annotations
 
 from langchain_openai import ChatOpenAI
-
 from agent.env_utils import get_env, require_env
-
-DEEPSEEK_V4_MAX_TOKENS = 25600
 
 
 def make_main_model() -> ChatOpenAI:
-    """创建编码智能体使用的 DeepSeek 模型。
-
-    课程版只保留一个主模型，默认对齐 open-swe 使用的 `deepseek-v4-pro`。
-    这里不引入多模型 profile、fallback、路由器等生产级能力，
-    让学生先理解“模型配置”和“Agent 编排”之间的关系。
-
-    `thinking: disabled` 与 open-swe 的 DeepSeek 调用方式保持一致，
-    避免模型输出额外思考内容影响工具调用和最终回复。
-    """
-
+    """DeepSeek endpoint with configurable model and bounded request budgets."""
+    from agent.core.telemetry import ModelTelemetry
     return ChatOpenAI(
+        callbacks=[ModelTelemetry()], stream_usage=True,
         model=get_env("MAIN_MODEL", "deepseek-v4-pro"),
-        temperature=1.1,
+        temperature=float(get_env("MODEL_TEMPERATURE", "0.2")),
         openai_api_key=require_env("DEEPSEEK_API_KEY"),
-        openai_api_base=require_env("DEEPSEEK_BASE_URL"),
-        max_tokens=DEEPSEEK_V4_MAX_TOKENS,
-        streaming=True,
+        openai_api_base=get_env("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
+        max_tokens=int(get_env("MODEL_MAX_TOKENS", "8192")),
+        timeout=float(get_env("MODEL_TIMEOUT_SECONDS", "120")),
+        max_retries=1, streaming=True,
         extra_body={"thinking": {"type": "disabled"}},
     )
-
-    # def make_main_model() -> BaseChatModel:
-    #     return init_chat_model(
-    #         model=get_env("MAIN_MODEL", "deepseek-v4-pro"),
-    #         model_provider="openai",
-    #         api_key=require_env("DEEPSEEK_API_KEY"),
-    #         base_url=require_env("DEEPSEEK_BASE_URL"),
-    #         temperature=1.1,
-    #         max_tokens=DEEPSEEK_V4_MAX_TOKENS,
-    #         streaming=True,
-    #         extra_body={"thinking": {"type": "disabled"}},
-    #     )

@@ -50,7 +50,7 @@ def git(*args: str, env=None) -> str:
     return result.stdout.strip()
 
 
-def prepare_worktree(base: Path, workspace: Path, repo_url: str, repo_name: str, thread_id: str, *, env=None) -> Path:
+def prepare_worktree(base: Path, workspace: Path, repo_url: str, repo_name: str, thread_id: str, *, env=None, review=None) -> Path:
     key = hashlib.sha256(repo_url.encode()).hexdigest()[:24]
     mirror = base / "mirrors" / (key + ".git")
     target = workspace / "projects" / repo_name
@@ -59,10 +59,24 @@ def prepare_worktree(base: Path, workspace: Path, repo_url: str, repo_name: str,
             return target  # preserve uncommitted edits and the approved plan's baseline
         if not mirror.exists():
             mirror.parent.mkdir(parents=True, exist_ok=True)
-            git("clone", "--mirror", repo_url, str(mirror), env=env)
+            git("-c", "core.autocrlf=false", "clone", "--mirror", "--config", "core.autocrlf=false", repo_url, str(mirror), env=env)
         else:
             git("--git-dir", str(mirror), "fetch", "origin", env=env)
+        revision = 'HEAD'
+        if review:
+            import re
+            if not all(re.fullmatch(r'[a-f0-9]{40}', review[k]) for k in ('base_sha', 'head_sha')):
+                raise ValueError('invalid review revision')
+            number = int(review['number'])
+            if number <= 0:
+                raise ValueError('invalid PR number')
+            git('--git-dir', str(mirror), 'fetch', 'origin', f'refs/pull/{number}/head', env=env)
+            actual = git('--git-dir', str(mirror), 'rev-parse', 'FETCH_HEAD', env=env)
+            if actual != review['head_sha']:
+                raise ValueError('PR head 已变化，请重新提交审查以绑定新快照')
+            git('--git-dir', str(mirror), 'fetch', 'origin', review['base_sha'], env=env)
+            revision = review['head_sha']
         branch = "codepilot/" + hashlib.sha256(thread_id.encode()).hexdigest()[:16]
         target.parent.mkdir(parents=True, exist_ok=True)
-        git("--git-dir", str(mirror), "worktree", "add", "-b", branch, str(target), "HEAD", env=env)
+        git("--git-dir", str(mirror), "worktree", "add", "-b", branch, str(target), revision, env=env)
     return target

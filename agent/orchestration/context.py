@@ -26,14 +26,7 @@ def durable_event(event: str, payload: dict):
 def external_operation(kind: str, parameters: dict, action):
     current = identity()
     if not current:
-        return action()
+        raise PermissionError("外部发布只能通过持久化任务及人工审批执行")
     from agent.orchestration.service import get_run_store
-    from agent.orchestration.store import encode
-    operation_id = hashlib.sha256(encode([current[0], kind, parameters]).encode()).hexdigest()
-    store = get_run_store()
-    cached = store.operation_start(*current, operation_id)
-    if cached is not None:
-        return cached
-    result = action()
-    store.operation_finish(*current, operation_id, result)
-    return result
+    from agent.orchestration.approvals import propose
+    return propose(get_run_store(), *current, kind, parameters)

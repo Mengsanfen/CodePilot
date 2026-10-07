@@ -175,11 +175,11 @@ function GlobalDefaultsSection({ models }: { models: Array<ModelOption> }) {
   return (
     <SettingsSection
       title="Global defaults"
-      description="Workspace-wide model defaults. Per-user LX-AICODING selections override the agent defaults."
+      description="Workspace-wide model defaults. Per-user CodePilot selections override the agent defaults."
     >
       <div className="divide-y divide-border">
         <RolePicker
-          label="LX-AICODING 智能体"
+          label="CodePilot 智能体"
           description="Model used for internal code-writing runs triggered from the dashboard or integrations."
           models={models}
           model={settings.data?.default_agent_model ?? null}
@@ -195,7 +195,7 @@ function GlobalDefaultsSection({ models }: { models: Array<ModelOption> }) {
           disabled={!settings.data || save.isPending}
         />
         <RolePicker
-          label="LX-AICODING 子智能体"
+          label="CodePilot 子智能体"
           description="Model used by delegated main-agent tasks."
           models={models}
           model={settings.data?.default_agent_subagent_model ?? null}

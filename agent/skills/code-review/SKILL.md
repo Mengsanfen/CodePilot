@@ -1,3 +1,8 @@
+---
+name: code-review
+description: Review changed source for concrete defects using diff locations and source evidence.
+---
+
 # Code Review Skill
 
 用于课程版 Reviewer Agent 的最小技能说明。

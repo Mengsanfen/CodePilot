@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Literal
+import re
 
 TaskKind = Literal["coding", "analysis", "planning", "qa", "sync", "inspect"]
 
@@ -44,6 +45,8 @@ def classify_task_kind(prompt: str) -> TaskKind:
     """
 
     normalized = _normalize_prompt(prompt)
+    # Negative constraints such as “不修改文件” must not turn an analysis into coding.
+    normalized = re.sub(r"(?:不要|禁止|不得|不)(?:直接)?(?:修改|新增|修复|创建pr|提交|push|运行测试|开发|重构)", "", normalized)
     if is_pull_only_task(prompt):
         return "sync"
     if is_workspace_listing_task(prompt):
