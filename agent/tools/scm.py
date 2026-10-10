@@ -41,10 +41,12 @@ def create_pr(**parameters):
 
 def post_comment(**parameters):
     target = repository(parameters['owner'], parameters['repo'])
-    return external_operation('post_comment', {'provider': target.provider, **parameters}, None)
+    return external_operation('comment_pr', {'provider': target.provider, **parameters}, None)
 
 
 def execute_approved(kind: str, parameters: dict) -> dict:
+    from agent.orchestration.operations import kind_of
+    kind = kind_of(kind).value
     if kind == 'git_push':
         from agent.tools.git_control import execute_push
         return execute_push(parameters)
@@ -54,8 +56,18 @@ def execute_approved(kind: str, parameters: dict) -> dict:
     if provider == 'gitee':
         from agent.tools.gitee_api import create_pull_request, post_pr_comment
         if kind == 'create_pr':
+            from agent.backends.git_environment import git_environment
+            from agent.backends.worktrees import git
+            import re
+            if not expected_head or not re.fullmatch(r'codepilot/[a-zA-Z0-9_-]{1,80}', p['head']):
+                raise ValueError('PR 提案缺少固定提交或分支不合法，请重新提出申请')
+            target = parse_gitee_repo_url(f"https://gitee.com/{p['owner']}/{p['repo']}")
+            ref = 'refs/heads/' + p['head']
+            remote = git('ls-remote', '--heads', target.clone_url, ref, env=git_environment('gitee'))
+            if remote.split() != [expected_head, ref]:
+                raise RuntimeError('远端分支提交与审批快照不一致，请核对推送结果')
             return create_pull_request(**p)
-        if kind == 'post_comment':
+        if kind == 'comment_pr':
             return post_pr_comment(**p)
     elif provider == 'github':
         with github_client() as client:
@@ -71,7 +83,7 @@ def execute_approved(kind: str, parameters: dict) -> dict:
                 if existing.json():
                     return {**existing.json()[0], 'reused': True}
                 response = client.post(endpoint + '/pulls', json={k: p[k] for k in ('head', 'base', 'title', 'body')} | {'draft': True})
-            elif kind == 'post_comment':
+            elif kind == 'comment_pr':
                 response = client.post(endpoint + f"/issues/{p['number']}/comments", json={'body': p['body']})
             else:
                 raise ValueError('unknown publication kind')

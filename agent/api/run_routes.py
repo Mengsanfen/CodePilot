@@ -17,7 +17,10 @@ run_router = APIRouter(prefix="/api/runs")
 def operations(run_id: str):
     get_run(run_id)
     from agent.orchestration.approvals import list_operations
-    return list_operations(get_run_store(), run_id)
+    try:
+        return list_operations(get_run_store(), run_id)
+    except RunConflict as exc:
+        raise HTTPException(409, str(exc)) from exc
 
 
 class ApproveRequest(BaseModel):

@@ -2,6 +2,7 @@ const base = (import.meta.env.VITE_DASHBOARD_API_BASE_URL ?? "").replace(/\/$/, 
 
 export interface Operation {
   operation_id: string
+  expected_digest?: string
   kind: string
   status: string
   parameters: Record<string, unknown>

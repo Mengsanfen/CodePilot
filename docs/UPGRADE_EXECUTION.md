@@ -31,3 +31,12 @@
 - 删除已移除组件的 TypeScript 排除列表；仍使用的上游组件部分保留 ts-nocheck，未声称全量严格类型覆盖。
 - 编译成功；后端 50 passed，前端 7 passed，typecheck 通过，构建成功（58.14 秒）；日志 p1-backend / p1-frontend / p1-typecheck / p1-build。
 - Breaking change：删除无效旧页面；浏览器旧主题/侧栏/草稿键不迁移。数据库与服务端历史任务保留。
+
+## P2 验收（2026-10-10）
+
+- 新增 Typed Operation，约束 git_push/create_pr/comment_pr 与 proposed/approved/executing/completed/uncertain；兼容旧 pending/post_comment 的原始指纹。
+- 执行前重算持久化参数指纹，审批与执行分别提交事务；行锁领取防止并发重复执行。补充篡改、并发、旧记录与 approved 状态恢复测试。
+- Gitee 发布前补充远端分支 SHA 校验；GitHub 原有固定 head 校验保留。未知操作类型不能进入可信发布控制器。
+- 新增 SECURITY_MODEL、FAILURE_SEMANTICS，说明可信边界、逻辑分层、恢复条件及 Checkpoint 非 Exactly Once。
+- 后端完整集成回归 57 passed / 0 failed / 0 skipped（99.57 秒）；前端 9 passed，typecheck 与 build 成功；编译成功，Secret Scan 0 项。日志 p2-final-backend / p2-frontend-final / p2-typecheck / p2-build。
+- API 新提案状态改为 proposed，新增 expected_digest；前端兼容旧状态。旧审批记录无需破坏性迁移。远端 CI 仍待实际提交运行。

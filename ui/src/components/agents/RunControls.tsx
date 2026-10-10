@@ -9,7 +9,7 @@ const labels: Record<string, string> = {
   queued: "排队中", running: "执行中", cancelling: "正在停止", cancelled: "已取消",
   interrupted: "执行中断", completed: "已完成", failed: "执行失败",
 }
-const operations: Record<string, string> = { git_push: "推送代码", create_pr: "创建 PR", post_comment: "发布评论" }
+const operations: Record<string, string> = { git_push: "推送代码", create_pr: "创建 PR", comment_pr: "发布评论", post_comment: "发布评论" }
 
 export function RunControls({ thread }: { thread: AgentThread }) {
   const run = thread.execution
@@ -50,14 +50,14 @@ export function RunControls({ thread }: { thread: AgentThread }) {
       )}
       {pending.map(item => (
         <details key={item.operation_id} className="mt-3 border-l-2 border-amber-500 pl-3">
-          <summary className="cursor-pointer font-medium">{operations[item.kind] ?? item.kind} · {item.status === "pending" ? "待审核" : "需核对远端结果"}</summary>
+          <summary className="cursor-pointer font-medium">{operations[item.kind] ?? item.kind} · {["proposed", "pending"].includes(item.status) ? "待审核" : item.status === "approved" ? "已批准，待执行" : "需核对远端结果"}</summary>
           <pre className="my-2 max-h-64 overflow-auto whitespace-pre-wrap break-all rounded bg-black/5 p-3 text-xs dark:bg-white/5">{JSON.stringify(item.parameters, null, 2)}</pre>
-          {item.status === "pending" && <>
+          {["proposed", "pending", "approved"].includes(item.status) && <>
             <label className="flex items-center gap-2"><input type="checkbox" checked={!!reviewed[item.operation_id]}
               onChange={e => setReviewed({ ...reviewed, [item.operation_id]: e.target.checked })} />已核对以上仓库、内容和提交</label>
             <button className="mt-2 rounded border px-3 py-1.5 disabled:opacity-40"
               disabled={!reviewed[item.operation_id] || mutation.isPending || run.status !== "completed"}
-              onClick={() => mutation.mutate({ path: `/operations/${item.operation_id}/approve`, body: { expected_digest: item.operation_id } })}>
+              onClick={() => mutation.mutate({ path: `/operations/${item.operation_id}/approve`, body: { expected_digest: item.expected_digest ?? item.operation_id } })}>
               批准并{operations[item.kind] ?? "执行"}
             </button>
           </>}
