@@ -4,6 +4,32 @@
 
 技术栈：Python 3.14、FastAPI、DeepAgents 0.6.11 / LangGraph、SQLite / PostgreSQL、Redis Streams、Docker、React、SSE、OpenTelemetry。
 
+## 为什么需要 Harness
+
+代码生成只是任务的一环。Worker 可能重启，模型可能反复检索，测试可能失败，远端 PR 可能已创建但响应丢失。CodePilot 把任务事实、执行权限、发布审批与验证证据放到模型之外管理，让这些失败有明确的后续处理方式。
+
+## 架构
+
+```mermaid
+flowchart TD
+    UI[React UI / API Client] --> API[FastAPI]
+    API --> DB[(PostgreSQL / SQLite\nRun · Lease · Operation · Event)]
+    API -. 唤醒 .-> Redis[Redis Streams]
+    Redis -. 通知 .-> Worker[Host Worker Supervisor]
+    DB -->|领取 / 心跳 / fencing| Worker
+    Worker --> Runner[Agent Runner / LangGraph Checkpoint]
+    Runner --> Files[Session Git Worktree / 文件工具]
+    Runner --> Sandbox[Docker Sandbox\n禁网 · 非 root · 资源限额]
+    Runner -->|只提案| Approval[不可变参数审批]
+    UI -->|人工确认| Approval
+    Approval --> SCM[Trusted Git / SCM Controller]
+    SCM --> Remote[GitHub / Gitee]
+    DB -->|持久化 SSE 回放| UI
+    Runner --> Trace[OpenTelemetry / Usage / 阶段事件]
+```
+
+只有可信控制器持有 Git/SCM 凭据；任务容器没有 Docker socket 或发布凭据。Redis 是唤醒优化，数据库是任务事实源。分层职责和限制见 [SECURITY_MODEL](docs/SECURITY_MODEL.md)。
+
 ## 能做什么
 
 - HTTP 提交立即返回 `202 + run_id`，Worker 独立执行；支持幂等提交、取消、硬超时、租约失效检测及显式 Checkpoint 恢复。
@@ -14,7 +40,21 @@
 - SSE 使用持久化序号及 `Last-Event-ID` 回放；页面显示真实执行状态、恢复和发布审批。
 - 按 GitHub PR 编号固定提交快照；人工选择 findings 后，执行修复、容器验收和独立复审。页面可查看阶段追踪与模型用量。
 
+## 失败后如何处理
+
+| 场景 | 系统行为 |
+| --- | --- |
+| Worker 消失、租约过期 | 标记 interrupted；旧 lease token 无法写事件或完成任务 |
+| 显式恢复 | 人工核对外部副作用后恢复 Checkpoint；已完成图节点不应重跑，未完成节点仍可能重入 |
+| Redis 通知丢失 | Worker 轮询数据库继续领取任务 |
+| PR 请求响应超时 | 操作进入 uncertain，拒绝自动重复发布 |
+| SSE 连接断开 | 客户端按最后事件序号重新订阅持久化事件 |
+
+Checkpoint 不能保证外部副作用 Exactly Once，恢复也不等于无条件重试。状态转换、恢复前提与人工核对步骤见 [FAILURE_SEMANTICS](docs/FAILURE_SEMANTICS.md)。
+
 ## Windows 本地运行
+
+运行前需要 Git、Python 3.14 和 uv；前端需要 Node.js 24 与 Yarn 1.22.22。容器执行还需要 Docker Desktop 的 Linux containers。
 
 ```powershell
 uv venv --python 3.14
@@ -96,7 +136,14 @@ $env:TEST_DOCKER_IMAGE='codepilot-sandbox:local'
 .\.venv\Scripts\python.exe scripts/smoke_agent.py
 .\.venv\Scripts\python.exe scripts/eval_tasks.py --live
 .\.venv\Scripts\python.exe scripts/smoke_review_flow.py --live
+
+# 20 个固定公开仓库任务：先验证夹具，再测真实模型
+docker build -f deploy/Dockerfile.benchmark -t codepilot-benchmark:local .
+.\.venv\Scripts\python.exe scripts/benchmark.py --validate
+.\.venv\Scripts\python.exe scripts/benchmark.py --live
 ```
+
+当前主评测集覆盖 Click、ItsDangerous、HTTPX 三个固定提交快照上的缺陷修复、功能扩展、测试生成、审查与仓库问答，共 20 例。方法、预算和局限见 [BENCHMARK](docs/BENCHMARK.md)。它是人工编写任务集，不代表历史 Issue 或企业任务分布。
 
 报告写入忽略目录 `test-results/`。工程回归与模型能力评测分开：`evals/tasks.json` 包含 8 个固定合成样例（缺陷修复 2、功能实现 2、审查 4，含无缺陷对照）；隐藏断言在模型完成后才注入，代码在受限容器内运行。报告区分任务成功率、定位精确率/召回率和审查交付覆盖率。有效缺陷率必须通过逐条证据裁定，使用 `scripts/adjudicate_eval.py 报告路径 裁定JSON路径`，不能只按行号匹配生成。它们不能代表真实仓库总体成功率。
 
@@ -105,6 +152,17 @@ $env:TEST_DOCKER_IMAGE='codepilot-sandbox:local'
 API 与 Agent 执行进程通过持久化 W3C traceparent 关联，阶段 span 默认写入 `logs/traces-<pid>.jsonl`，运行事件记录阶段耗时、失败类型和模型 Token。设置 `CODEPILOT_OTEL_CONSOLE=true` 可同时输出控制台 span。当前没有接入外部 Collector 或实现完整成本结算。
 
 更多设计、限制和面试讲解见 [架构说明](docs/CODEPILOT_ARCHITECTURE.md)，最新目标对标与实际执行结果见 [目标验收](docs/TARGET_ALIGNMENT.md)，首轮部署记录见 [本地验收记录](docs/VALIDATION.md)。
+
+## 演示入口
+
+- 正常任务：在 UI 提交公开仓库任务，先查看方案，再确认实施；观察事件、测试结果和 Git diff。
+- 恢复：对具有执行上下文的 interrupted 任务，核对 Git/PR 结果后通过恢复按钮继续；查看同一 run 的 attempt 和事件序号。
+- 发布审批：检查申请中的仓库、分支、固定 commit 和内容后批准；uncertain 状态需先核对远端。
+- 审查闭环：提交 GitHub PR，选择具体 findings 并指定验收命令，查看修复、容器验证和独立复审阶段。可用 `scripts/smoke_review_flow.py --live` 验证固定测试链路。
+
+## 范围与限制
+
+项目面向单操作者的 Agent Runtime 工程验证。没有租户权限系统、自动扩缩容或生产 SLO；Docker 约束不代表强对抗多租户隔离。固定评测数量有限，单次通过率不用于推断生产可靠性。远端 CI 状态以 GitHub 实际运行结果为准，本地回归通过不等同于 CI Green。
 
 ## Credits / Upstream
 

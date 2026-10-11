@@ -1,0 +1,542 @@
+{
+  "version": 1,
+  "repositories": {
+    "click": {
+      "url": "https://github.com/pallets/click.git",
+      "sha": "934813e4d421071a1b3db3973c02fe2721359a6e",
+      "python_path": "src"
+    },
+    "itsdangerous": {
+      "url": "https://github.com/pallets/itsdangerous.git",
+      "sha": "096c8d42545d3b68ea21a4f890fb2b2d8979c0bd",
+      "python_path": "src"
+    },
+    "httpx": {
+      "url": "https://github.com/encode/httpx.git",
+      "sha": "26d48e0634e6ee9cdc0533996db289ce4b430177",
+      "python_path": "."
+    }
+  },
+  "tasks": [
+    {
+      "id": "fix-click-bool",
+      "repo": "click",
+      "base_sha": "934813e4d421071a1b3db3973c02fe2721359a6e",
+      "type": "bugfix",
+      "prompt": "修复 Click BOOL 参数转换对首尾空白的回归；保留已有布尔输入、大小写和非法输入的行为。 直接修改源码，不提交。",
+      "budget": {
+        "max_seconds": 240,
+        "max_model_calls": 20
+      },
+      "verification": {
+        "command": "python /projects/task/__acceptance.py",
+        "hidden_files": [
+          "evals/hidden/fix-click-bool.py"
+        ]
+      },
+      "input_edits": [
+        {
+          "path": "src/click/types.py",
+          "before": "norm = value.strip().lower()",
+          "after": "norm = value.lower()"
+        }
+      ],
+      "oracle_edits": [
+        {
+          "path": "src/click/types.py",
+          "before": "norm = value.lower()",
+          "after": "norm = value.strip().lower()"
+        }
+      ]
+    },
+    {
+      "id": "fix-click-normalize",
+      "repo": "click",
+      "base_sha": "934813e4d421071a1b3db3973c02fe2721359a6e",
+      "type": "bugfix",
+      "prompt": "修复启用 token_normalize_func 时选项名称归一化丢失前缀的问题；短/长选项和未配置钩子的行为都需要保留。 直接修改源码，不提交。",
+      "budget": {
+        "max_seconds": 240,
+        "max_model_calls": 20
+      },
+      "verification": {
+        "command": "python /projects/task/__acceptance.py",
+        "hidden_files": [
+          "evals/hidden/fix-click-normalize.py"
+        ]
+      },
+      "input_edits": [
+        {
+          "path": "src/click/parser.py",
+          "before": "return f\"{prefix}{ctx.token_normalize_func(opt)}\"",
+          "after": "return ctx.token_normalize_func(opt)"
+        }
+      ],
+      "oracle_edits": [
+        {
+          "path": "src/click/parser.py",
+          "before": "return ctx.token_normalize_func(opt)",
+          "after": "return f\"{prefix}{ctx.token_normalize_func(opt)}\""
+        }
+      ]
+    },
+    {
+      "id": "fix-its-age-boundary",
+      "repo": "itsdangerous",
+      "base_sha": "096c8d42545d3b68ea21a4f890fb2b2d8979c0bd",
+      "type": "bugfix",
+      "prompt": "修复 TimestampSigner 的 max_age 边界：age 等于 max_age 仍有效，超过上限或签名来自未来才过期，保留 return_timestamp 行为。 直接修改源码，不提交。",
+      "budget": {
+        "max_seconds": 240,
+        "max_model_calls": 20
+      },
+      "verification": {
+        "command": "python /projects/task/__acceptance.py",
+        "hidden_files": [
+          "evals/hidden/fix-its-age-boundary.py"
+        ]
+      },
+      "input_edits": [
+        {
+          "path": "src/itsdangerous/timed.py",
+          "before": "if age > max_age:",
+          "after": "if age >= max_age:"
+        }
+      ],
+      "oracle_edits": [
+        {
+          "path": "src/itsdangerous/timed.py",
+          "before": "if age >= max_age:",
+          "after": "if age > max_age:"
+        }
+      ]
+    },
+    {
+      "id": "fix-its-base64",
+      "repo": "itsdangerous",
+      "base_sha": "096c8d42545d3b68ea21a4f890fb2b2d8979c0bd",
+      "type": "bugfix",
+      "prompt": "修复 URL-safe Base64 解码的填充回归，支持无填充字节和 ASCII 文本，并保持签名序列化往返可用。 直接修改源码，不提交。",
+      "budget": {
+        "max_seconds": 240,
+        "max_model_calls": 20
+      },
+      "verification": {
+        "command": "python /projects/task/__acceptance.py",
+        "hidden_files": [
+          "evals/hidden/fix-its-base64.py"
+        ]
+      },
+      "input_edits": [
+        {
+          "path": "src/itsdangerous/encoding.py",
+          "before": "string += b\"=\" * (-len(string) % 4)",
+          "after": "string += b\"\""
+        }
+      ],
+      "oracle_edits": [
+        {
+          "path": "src/itsdangerous/encoding.py",
+          "before": "string += b\"\"",
+          "after": "string += b\"=\" * (-len(string) % 4)"
+        }
+      ]
+    },
+    {
+      "id": "fix-httpx-query-copy",
+      "repo": "httpx",
+      "base_sha": "26d48e0634e6ee9cdc0533996db289ce4b430177",
+      "type": "bugfix",
+      "prompt": "修复 QueryParams.get_list 返回内部可变列表的回归：调用者修改返回值不能影响原对象，重复值和缺失键保持兼容。 直接修改源码，不提交。",
+      "budget": {
+        "max_seconds": 240,
+        "max_model_calls": 20
+      },
+      "verification": {
+        "command": "python /projects/task/__acceptance.py",
+        "hidden_files": [
+          "evals/hidden/fix-httpx-query-copy.py"
+        ]
+      },
+      "input_edits": [
+        {
+          "path": "httpx/_urls.py",
+          "before": "return list(self._dict.get(str(key), []))",
+          "after": "return self._dict.get(str(key), [])"
+        }
+      ],
+      "oracle_edits": [
+        {
+          "path": "httpx/_urls.py",
+          "before": "return self._dict.get(str(key), [])",
+          "after": "return list(self._dict.get(str(key), []))"
+        }
+      ]
+    },
+    {
+      "id": "fix-httpx-query-add",
+      "repo": "httpx",
+      "base_sha": "26d48e0634e6ee9cdc0533996db289ce4b430177",
+      "type": "bugfix",
+      "prompt": "修复 QueryParams.add 覆盖已有同名参数的问题；新对象应保留顺序、追加值并保持原对象不变，URL.copy_add_param 也应正确。 直接修改源码，不提交。",
+      "budget": {
+        "max_seconds": 240,
+        "max_model_calls": 20
+      },
+      "verification": {
+        "command": "python /projects/task/__acceptance.py",
+        "hidden_files": [
+          "evals/hidden/fix-httpx-query-add.py"
+        ]
+      },
+      "input_edits": [
+        {
+          "path": "httpx/_urls.py",
+          "before": "q._dict[str(key)] = q.get_list(key) + [primitive_value_to_str(value)]",
+          "after": "q._dict[str(key)] = q.get_list(key)[:0] + [primitive_value_to_str(value)]"
+        }
+      ],
+      "oracle_edits": [
+        {
+          "path": "httpx/_urls.py",
+          "before": "q._dict[str(key)] = q.get_list(key)[:0] + [primitive_value_to_str(value)]",
+          "after": "q._dict[str(key)] = q.get_list(key) + [primitive_value_to_str(value)]"
+        }
+      ]
+    },
+    {
+      "id": "feature-click-slug",
+      "repo": "click",
+      "base_sha": "934813e4d421071a1b3db3973c02fe2721359a6e",
+      "type": "feature",
+      "prompt": "在 click.utils 新增 command_slug(name: str)：去掉首尾空白，用连字符连接任意空白分隔的词，使用 Unicode casefold；从 click 顶层导出。空文本返回空字符串。",
+      "budget": {
+        "max_seconds": 240,
+        "max_model_calls": 20
+      },
+      "verification": {
+        "command": "python /projects/task/__acceptance.py",
+        "hidden_files": [
+          "evals/hidden/feature-click-slug.py"
+        ]
+      },
+      "oracle_edits": [
+        {
+          "path": "src/click/utils.py",
+          "before": "def make_default_short_help(",
+          "after": "def command_slug(name: str) -> str:\n    return \"-\".join(name.split()).casefold()\n\n\ndef make_default_short_help("
+        },
+        {
+          "path": "src/click/__init__.py",
+          "before": "from .utils import echo as echo",
+          "after": "from .utils import command_slug as command_slug\nfrom .utils import echo as echo"
+        }
+      ]
+    },
+    {
+      "id": "feature-click-positive",
+      "repo": "click",
+      "base_sha": "934813e4d421071a1b3db3973c02fe2721359a6e",
+      "type": "feature",
+      "prompt": "在 click.types 新增 PositiveIntParamType（name=\"positive-integer\"），继承 IntParamType，接受可转为整数且 >0 的值，否则按 Click BadParameter 错误处理；从 click 顶层导出常量 POSITIVE_INT，支持 @click.option 使用。",
+      "budget": {
+        "max_seconds": 240,
+        "max_model_calls": 20
+      },
+      "verification": {
+        "command": "python /projects/task/__acceptance.py",
+        "hidden_files": [
+          "evals/hidden/feature-click-positive.py"
+        ]
+      },
+      "oracle_edits": [
+        {
+          "path": "src/click/types.py",
+          "before": "class IntRange(",
+          "after": "class PositiveIntParamType(IntParamType):\n    name = \"positive-integer\"\n\n    def convert(self, value, param, ctx):\n        value = super().convert(value, param, ctx)\n        if value <= 0:\n            self.fail(\"must be positive\", param, ctx)\n        return value\n\n\nPOSITIVE_INT = PositiveIntParamType()\n\n\nclass IntRange("
+        },
+        {
+          "path": "src/click/__init__.py",
+          "before": "from .types import INT as INT",
+          "after": "from .types import INT as INT\nfrom .types import POSITIVE_INT as POSITIVE_INT"
+        }
+      ]
+    },
+    {
+      "id": "feature-its-batch",
+      "repo": "itsdangerous",
+      "base_sha": "096c8d42545d3b68ea21a4f890fb2b2d8979c0bd",
+      "type": "feature",
+      "prompt": "为 itsdangerous.Signer 增加 validate_many(values) 方法，接受任意可迭代的签名值，按输入顺序返回 bool 列表，复用已有 validate 行为，不因单个无效签名停止；空输入返回 []。",
+      "budget": {
+        "max_seconds": 240,
+        "max_model_calls": 20
+      },
+      "verification": {
+        "command": "python /projects/task/__acceptance.py",
+        "hidden_files": [
+          "evals/hidden/feature-its-batch.py"
+        ]
+      },
+      "oracle_edits": [
+        {
+          "path": "src/itsdangerous/signer.py",
+          "before": "    def validate(self, signed_value:",
+          "after": "    def validate_many(self, values):\n        return [self.validate(value) for value in values]\n\n    def validate(self, signed_value:"
+        }
+      ]
+    },
+    {
+      "id": "feature-httpx-nonempty",
+      "repo": "httpx",
+      "base_sha": "26d48e0634e6ee9cdc0533996db289ce4b430177",
+      "type": "feature",
+      "prompt": "为 httpx.QueryParams 增加 without_empty()：返回新 QueryParams，去除值为精确空字符串的项；重复参数中非空值保持顺序，空白字符串保留。不得修改原对象。",
+      "budget": {
+        "max_seconds": 240,
+        "max_model_calls": 20
+      },
+      "verification": {
+        "command": "python /projects/task/__acceptance.py",
+        "hidden_files": [
+          "evals/hidden/feature-httpx-nonempty.py"
+        ]
+      },
+      "oracle_edits": [
+        {
+          "path": "httpx/_urls.py",
+          "before": "    def merge(self, params: QueryParamTypes",
+          "after": "    def without_empty(self) -> QueryParams:\n        return QueryParams([(key, value) for key, value in self.multi_items() if value != \"\"])\n\n    def merge(self, params: QueryParamTypes"
+        }
+      ]
+    },
+    {
+      "id": "review-its-age-boundary",
+      "repo": "itsdangerous",
+      "base_sha": "096c8d42545d3b68ea21a4f890fb2b2d8979c0bd",
+      "type": "review",
+      "prompt": "只读审查给出的 diff 与相关调用点。仅报告确定的回归，每个缺陷一次；禁止修改。最终输出 JSON 对象 {\"findings\":[{\"file\":\"仓库相对路径\",\"line\":正整数,\"description\":\"触发输入与影响\"}]}。",
+      "budget": {
+        "max_seconds": 240,
+        "max_model_calls": 20
+      },
+      "verification": {
+        "command": "python /projects/task/__acceptance.py",
+        "hidden_files": [
+          "evals/hidden/review-its-age-boundary.py"
+        ]
+      },
+      "input_edits": [
+        {
+          "path": "src/itsdangerous/timed.py",
+          "before": "if age > max_age:",
+          "after": "if age >= max_age:"
+        }
+      ],
+      "expected_findings": [
+        {
+          "file": "src/itsdangerous/timed.py",
+          "line": 141
+        }
+      ]
+    },
+    {
+      "id": "review-httpx-query-copy",
+      "repo": "httpx",
+      "base_sha": "26d48e0634e6ee9cdc0533996db289ce4b430177",
+      "type": "review",
+      "prompt": "只读审查给出的 diff 与相关调用点。仅报告确定的回归，每个缺陷一次；禁止修改。最终输出 JSON 对象 {\"findings\":[{\"file\":\"仓库相对路径\",\"line\":正整数,\"description\":\"触发输入与影响\"}]}。",
+      "budget": {
+        "max_seconds": 240,
+        "max_model_calls": 20
+      },
+      "verification": {
+        "command": "python /projects/task/__acceptance.py",
+        "hidden_files": [
+          "evals/hidden/review-httpx-query-copy.py"
+        ]
+      },
+      "input_edits": [
+        {
+          "path": "httpx/_urls.py",
+          "before": "return list(self._dict.get(str(key), []))",
+          "after": "return self._dict.get(str(key), [])"
+        }
+      ],
+      "expected_findings": [
+        {
+          "file": "httpx/_urls.py",
+          "line": 535
+        }
+      ]
+    },
+    {
+      "id": "review-clean-click",
+      "repo": "click",
+      "base_sha": "934813e4d421071a1b3db3973c02fe2721359a6e",
+      "type": "review",
+      "prompt": "只读审查 src/click/parser.py 的现有行为与注释约定，仅报告确定的逻辑缺陷，不给风格建议。若无缺陷输出空 findings。输出 JSON 对象 {\"findings\":[{\"file\":\"仓库相对路径\",\"line\":正整数,\"description\":\"触发输入与影响\"}]}。",
+      "budget": {
+        "max_seconds": 240,
+        "max_model_calls": 20
+      },
+      "verification": {
+        "command": "python /projects/task/__acceptance.py",
+        "hidden_files": []
+      }
+    },
+    {
+      "id": "review-clean-httpx",
+      "repo": "httpx",
+      "base_sha": "26d48e0634e6ee9cdc0533996db289ce4b430177",
+      "type": "review",
+      "prompt": "只读审查 httpx/_status_codes.py 的现有行为与注释约定，仅报告确定的逻辑缺陷，不给风格建议。若无缺陷输出空 findings。输出 JSON 对象 {\"findings\":[{\"file\":\"仓库相对路径\",\"line\":正整数,\"description\":\"触发输入与影响\"}]}。",
+      "budget": {
+        "max_seconds": 240,
+        "max_model_calls": 20
+      },
+      "verification": {
+        "command": "python /projects/task/__acceptance.py",
+        "hidden_files": []
+      }
+    },
+    {
+      "id": "testgen-click-bool",
+      "repo": "click",
+      "base_sha": "934813e4d421071a1b3db3973c02fe2721359a6e",
+      "type": "testgen",
+      "prompt": "为当前正确实现补充 pytest 回归测试：修复 Click BOOL 参数转换对首尾空白的回归；保留已有布尔输入、大小写和非法输入的行为。 只在 bench_tests/test_regression.py 写测试，不修改项目源码。不要依赖已有测试的 conftest；不要使用网络或真实时间等待。",
+      "budget": {
+        "max_seconds": 240,
+        "max_model_calls": 20
+      },
+      "verification": {
+        "command": "python /projects/task/__acceptance.py",
+        "hidden_files": []
+      },
+      "mutants": [
+        {
+          "path": "src/click/types.py",
+          "before": "norm = value.strip().lower()",
+          "after": "norm = value.lower()"
+        }
+      ],
+      "oracle_test": "def test_regression():\n    import click\n    from click.testing import CliRunner\n    assert click.BOOL.convert('  YES  ', None, None) is True\n    assert click.BOOL.convert(' OFF\\t', None, None) is False\n    assert click.BOOL.convert(True, None, None) is True\n    try: click.BOOL.convert('maybe', None, None)\n    except click.BadParameter: pass\n    else: raise AssertionError('invalid boolean accepted')\n    @click.command()\n    @click.option('--enabled', type=click.BOOL)\n    def cli(enabled): click.echo(str(enabled))\n    result = CliRunner().invoke(cli, ['--enabled', ' true '])\n    assert result.exit_code == 0 and result.output.strip() == 'True'\n"
+    },
+    {
+      "id": "testgen-its-age-boundary",
+      "repo": "itsdangerous",
+      "base_sha": "096c8d42545d3b68ea21a4f890fb2b2d8979c0bd",
+      "type": "testgen",
+      "prompt": "为当前正确实现补充 pytest 回归测试：修复 TimestampSigner 的 max_age 边界：age 等于 max_age 仍有效，超过上限或签名来自未来才过期，保留 return_timestamp 行为。 只在 bench_tests/test_regression.py 写测试，不修改项目源码。不要依赖已有测试的 conftest；不要使用网络或真实时间等待。",
+      "budget": {
+        "max_seconds": 240,
+        "max_model_calls": 20
+      },
+      "verification": {
+        "command": "python /projects/task/__acceptance.py",
+        "hidden_files": []
+      },
+      "mutants": [
+        {
+          "path": "src/itsdangerous/timed.py",
+          "before": "if age > max_age:",
+          "after": "if age >= max_age:"
+        }
+      ],
+      "oracle_test": "def test_regression():\n    from itsdangerous import TimestampSigner, SignatureExpired\n    from datetime import timezone\n    class ClockSigner(TimestampSigner):\n        now = 100\n        def get_timestamp(self): return self.now\n    s = ClockSigner('fixture-key')\n    token = s.sign('payload')\n    s.now = 110\n    value, stamp = s.unsign(token, max_age=10, return_timestamp=True)\n    assert value == b'payload' and stamp.tzinfo == timezone.utc\n    for now in [111, 99]:\n        s.now = now\n        try: s.unsign(token, max_age=10)\n        except SignatureExpired: pass\n        else: raise AssertionError('invalid age accepted')\n"
+    },
+    {
+      "id": "testgen-httpx-query-add",
+      "repo": "httpx",
+      "base_sha": "26d48e0634e6ee9cdc0533996db289ce4b430177",
+      "type": "testgen",
+      "prompt": "为当前正确实现补充 pytest 回归测试：修复 QueryParams.add 覆盖已有同名参数的问题；新对象应保留顺序、追加值并保持原对象不变，URL.copy_add_param 也应正确。 只在 bench_tests/test_regression.py 写测试，不修改项目源码。不要依赖已有测试的 conftest；不要使用网络或真实时间等待。",
+      "budget": {
+        "max_seconds": 240,
+        "max_model_calls": 20
+      },
+      "verification": {
+        "command": "python /projects/task/__acceptance.py",
+        "hidden_files": []
+      },
+      "mutants": [
+        {
+          "path": "httpx/_urls.py",
+          "before": "q._dict[str(key)] = q.get_list(key) + [primitive_value_to_str(value)]",
+          "after": "q._dict[str(key)] = q.get_list(key)[:0] + [primitive_value_to_str(value)]"
+        }
+      ],
+      "oracle_test": "def test_regression():\n    import httpx\n    q = httpx.QueryParams('a=1&a=2&b=3')\n    result = q.add('a', True)\n    assert result.get_list('a') == ['1','2','true']\n    assert q.get_list('a') == ['1','2']\n    assert result.get('b') == '3'\n    assert q.add('new', None).get('new') == ''\n    url = httpx.URL('https://example.test/?a=1').copy_add_param('a', 2)\n    assert url.params.get_list('a') == ['1','2']\n"
+    },
+    {
+      "id": "qa-click",
+      "repo": "click",
+      "base_sha": "934813e4d421071a1b3db3973c02fe2721359a6e",
+      "type": "repoqa",
+      "prompt": "选项名称的归一化如何保留前缀，什么配置钩子修改名称？请指出实现函数与条件。 只读，输出 JSON 对象 {\"answer\":\"说明\",\"evidence\":[{\"path\":\"仓库相对路径\",\"start_line\":正整数,\"end_line\":正整数}]}，引用范围应覆盖相关定义，最多 200 行。",
+      "budget": {
+        "max_seconds": 240,
+        "max_model_calls": 20
+      },
+      "verification": {
+        "command": "python /projects/task/__acceptance.py",
+        "hidden_files": []
+      },
+      "qa": {
+        "path": "src/click/parser.py",
+        "anchor_line": 120,
+        "terms": [
+          "split_opt",
+          "token_normalize_func"
+        ]
+      }
+    },
+    {
+      "id": "qa-itsdangerous",
+      "repo": "itsdangerous",
+      "base_sha": "096c8d42545d3b68ea21a4f890fb2b2d8979c0bd",
+      "type": "repoqa",
+      "prompt": "签名过期由哪个类检查？时间差等于 max_age 或为负时分别如何处理？ 只读，输出 JSON 对象 {\"answer\":\"说明\",\"evidence\":[{\"path\":\"仓库相对路径\",\"start_line\":正整数,\"end_line\":正整数}]}，引用范围应覆盖相关定义，最多 200 行。",
+      "budget": {
+        "max_seconds": 240,
+        "max_model_calls": 20
+      },
+      "verification": {
+        "command": "python /projects/task/__acceptance.py",
+        "hidden_files": []
+      },
+      "qa": {
+        "path": "src/itsdangerous/timed.py",
+        "anchor_line": 22,
+        "terms": [
+          "max_age",
+          "SignatureExpired"
+        ]
+      }
+    },
+    {
+      "id": "qa-httpx",
+      "repo": "httpx",
+      "base_sha": "26d48e0634e6ee9cdc0533996db289ce4b430177",
+      "type": "repoqa",
+      "prompt": "QueryParams.add 如何追加同名参数而不覆盖原对象？说明返回对象和列表来源。 只读，输出 JSON 对象 {\"answer\":\"说明\",\"evidence\":[{\"path\":\"仓库相对路径\",\"start_line\":正整数,\"end_line\":正整数}]}，引用范围应覆盖相关定义，最多 200 行。",
+      "budget": {
+        "max_seconds": 240,
+        "max_model_calls": 20
+      },
+      "verification": {
+        "command": "python /projects/task/__acceptance.py",
+        "hidden_files": []
+      },
+      "qa": {
+        "path": "httpx/_urls.py",
+        "anchor_line": 552,
+        "terms": [
+          "QueryParams",
+          "get_list"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+FROM codepilot-sandbox:local
+USER root
+RUN pip install --no-cache-dir anyio==4.14.0 certifi==2026.6.17 httpcore==1.0.9 idna==3.18 h11==0.16.0
+USER 65534:65534

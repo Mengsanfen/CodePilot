@@ -1,0 +1,180 @@
+{
+  "$defs": {
+    "Budget": {
+      "additionalProperties": false,
+      "properties": {
+        "max_seconds": {
+          "maximum": 600,
+          "minimum": 10,
+          "title": "Max Seconds",
+          "type": "integer"
+        },
+        "max_model_calls": {
+          "maximum": 30,
+          "minimum": 1,
+          "title": "Max Model Calls",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "max_seconds",
+        "max_model_calls"
+      ],
+      "title": "Budget",
+      "type": "object"
+    },
+    "Edit": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "before": {
+          "title": "Before",
+          "type": "string"
+        },
+        "after": {
+          "title": "After",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "before",
+        "after"
+      ],
+      "title": "Edit",
+      "type": "object"
+    },
+    "Verification": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "title": "Command",
+          "type": "string"
+        },
+        "hidden_files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Hidden Files",
+          "type": "array"
+        }
+      },
+      "required": [
+        "command",
+        "hidden_files"
+      ],
+      "title": "Verification",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "pattern": "^[a-z0-9-]+$",
+      "title": "Id",
+      "type": "string"
+    },
+    "repo": {
+      "title": "Repo",
+      "type": "string"
+    },
+    "base_sha": {
+      "pattern": "^[a-f0-9]{40}$",
+      "title": "Base Sha",
+      "type": "string"
+    },
+    "type": {
+      "enum": [
+        "bugfix",
+        "feature",
+        "testgen",
+        "review",
+        "repoqa"
+      ],
+      "title": "Type",
+      "type": "string"
+    },
+    "prompt": {
+      "title": "Prompt",
+      "type": "string"
+    },
+    "verification": {
+      "$ref": "#/$defs/Verification"
+    },
+    "budget": {
+      "$ref": "#/$defs/Budget"
+    },
+    "input_edits": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Edit"
+      },
+      "title": "Input Edits",
+      "type": "array"
+    },
+    "oracle_edits": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Edit"
+      },
+      "title": "Oracle Edits",
+      "type": "array"
+    },
+    "mutants": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Edit"
+      },
+      "title": "Mutants",
+      "type": "array"
+    },
+    "expected_findings": {
+      "default": [],
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Expected Findings",
+      "type": "array"
+    },
+    "qa": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Qa"
+    },
+    "oracle_test": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Oracle Test"
+    }
+  },
+  "required": [
+    "id",
+    "repo",
+    "base_sha",
+    "type",
+    "prompt",
+    "verification",
+    "budget"
+  ],
+  "title": "BenchmarkTask",
+  "type": "object"
+}

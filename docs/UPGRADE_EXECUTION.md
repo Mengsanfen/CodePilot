@@ -40,3 +40,14 @@
 - 新增 SECURITY_MODEL、FAILURE_SEMANTICS，说明可信边界、逻辑分层、恢复条件及 Checkpoint 非 Exactly Once。
 - 后端完整集成回归 57 passed / 0 failed / 0 skipped（99.57 秒）；前端 9 passed，typecheck 与 build 成功；编译成功，Secret Scan 0 项。日志 p2-final-backend / p2-frontend-final / p2-typecheck / p2-build。
 - API 新提案状态改为 proposed，新增 expected_digest；前端兼容旧状态。旧审批记录无需破坏性迁移。远端 CI 仍待实际提交运行。
+
+## P3 验收（2026-10-11）
+
+- 新增 20 个固定 Git SHA 的公开仓库任务、严格任务 Schema、隐藏正负验收、测试生成变异验证及 12 类失败分类。保留旧 8 例 smoke。
+- 模型仅使用文件工具，生成代码由可信验收器在受限 Docker 中执行；原始输出留在忽略目录。新增公开汇总导出器，拒绝夹具或不完整任务集。
+- 修复回调并发写文件问题，以及图步数上限提前切断调用预算的问题；新增真实图循环测试验证第 20 次允许、第 21 次拒绝。
+- 20/20 夹具验证通过（p3-controls-final.log）；62 项后端测试通过，0 failed / 0 skipped，32.71 秒（p3-final-backend.log）；编译和 Secret Scan 通过。
+- 完整模型报告 benchmark-1791703712750028300：12/20 通过，编码类 11/13；994,756 输入 Token、35,361 输出 Token、177 次调用，usage 完整。median 27.937 秒，p95 71.98 秒。
+- 8 个失败全部保留：预算耗尽 2、JSON 交付失败 5、QA 锚点规则未满足 1。后者存在规则假阴性，审查交付 0/4 不能解释为零误报。详见 benchmark/latest-summary.md。
+- 两次 8-call 试跑及图步数错误的中止报告仅作诊断，不混入完整报告。评测器为受限文件工具链路，不宣称经过完整 API/审批/线上 Reviewer。
+- README 增加架构、失败语义、评测与演示入口。P3 不修改现有业务 API 或数据库结构；前端沿用 P2 已通过的检查。
