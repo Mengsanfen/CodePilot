@@ -4,6 +4,8 @@
 
 技术栈：Python 3.14、FastAPI、DeepAgents 0.6.11 / LangGraph、SQLite / PostgreSQL、Redis Streams、Docker、React、SSE、OpenTelemetry。
 
+学习与面试准备：从 [CodePilot 学习与面试教程](docs/LEARNING_GUIDE.md) 开始，按源码链路、动手实验和追问逐步掌握项目。
+
 ## 为什么需要 Harness
 
 代码生成只是任务的一环。Worker 可能重启，模型可能反复检索，测试可能失败，远端 PR 可能已创建但响应丢失。CodePilot 把任务事实、执行权限、发布审批与验证证据放到模型之外管理，让这些失败有明确的后续处理方式。
