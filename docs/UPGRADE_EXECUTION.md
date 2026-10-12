@@ -51,3 +51,12 @@
 - 8 个失败全部保留：预算耗尽 2、JSON 交付失败 5、QA 锚点规则未满足 1。后者存在规则假阴性，审查交付 0/4 不能解释为零误报。详见 benchmark/latest-summary.md。
 - 两次 8-call 试跑及图步数错误的中止报告仅作诊断，不混入完整报告。评测器为受限文件工具链路，不宣称经过完整 API/审批/线上 Reviewer。
 - README 增加架构、失败语义、评测与演示入口。P3 不修改现有业务 API 或数据库结构；前端沿用 P2 已通过的检查。
+
+## 主分支合并前验证（2026-10-12）
+
+- 在 Windows 本地启动独立的临时 PostgreSQL 17、Redis 7.4 容器，使用现有 `codepilot-sandbox:local` 镜像；验证结束后清理本次创建的容器。
+- `scripts/failure_injection.py`：5 passed / 0 failed / 0 skipped，pytest 耗时 41.02 秒。覆盖 SQLite/PostgreSQL 的真实 Worker 中断与 Checkpoint 恢复、模拟 Redis 通知丢失、模拟 PR 已接受但响应超时，以及真实 Docker 权限与隔离负向检查。
+- 本次两个恢复用例均通过，旧租约写入被拒绝，事件重放一致；模拟发布场景中重复外部操作计数为 0。仅为单次固定故障实验结果，不代表生产 SLO、统计可靠性或跨平台验收。
+- 其余后端回归：62 passed / 0 failed / 0 skipped，32.62 秒；两组共 67 项全部通过。原始结果位于忽略目录 `test-results/faults-1791815536538722900/report.json` 与 `test-results/main-update-regression.xml`。
+- Secret Scan：0 项。保留 Starlette TestClient/httpx 弃用警告；本轮未重新运行真实模型评测，前端沿用 P2 已通过的检查。
+- 同步学习教程中的本地故障实验验收状态；P5 ContextStrategy 对照实验仍未完成，远端 CI 以实际运行结果为准。
